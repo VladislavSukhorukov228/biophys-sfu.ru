@@ -14,8 +14,14 @@
 <header class="site-header">
   <div class="wrap bar">
     <a class="brand" href="../../index.html">
-      <span class="uni">СФУ · ИФБиБТ</span>
-      <span class="dept">Кафедра биофизики</span>
+      <span class="logos">
+        <img src="../../assets/img/logo-ifbibt.png" alt="Логотип ИФБиБТ">
+        <img src="../../assets/img/logo-network.png" alt="">
+      </span>
+      <span class="txt">
+        <span class="uni">СФУ · ИФБиБТ</span>
+        <span class="dept">Кафедра биофизики</span>
+      </span>
     </a>
     <nav class="site-nav" aria-label="Основная навигация">
       <a href="../../index.html">Главная</a>
@@ -91,7 +97,18 @@
         <p>Приложение рассчитано на смартфон — откройте эту страницу на телефоне
            или отсканируйте QR-код из е-курса. Для загрузки карты нужен доступ
            в интернет; поставленные точки сохраняются на устройстве.</p>
-        <a class="btn btn-run" href="hydro-point.html">Открыть «Точку отбора»</a>
+<div class="gate" data-gate="lab01">
+          <label for="gate-word">Кодовое слово занятия</label>
+          <div class="row">
+            <input id="gate-word" type="text" autocomplete="off" placeholder="выдаёт преподаватель">
+            <button type="button">Открыть</button>
+          </div>
+          <p class="gate-msg"></p>
+          <p class="gate-note">Доступ действует до закрытия вкладки.</p>
+        </div>
+        <div class="gated" hidden>
+                <a class="btn btn-run" href="hydro-point.html">Открыть «Точку отбора»</a>
+        </div>
         <p class="hint">Методические указания к работе готовятся и появятся здесь
            отдельной кнопкой. Перед выходом в поле проверьте заряд телефона и
            разрешение на доступ к геолокации в браузере.</p>
@@ -107,5 +124,7 @@
   </div>
 </footer>
 
+<script src="../../assets/js/site.js"></script>
+<script src="../../assets/js/gate.js"></script>
 </body>
 </html>

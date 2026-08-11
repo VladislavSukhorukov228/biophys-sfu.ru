@@ -15,8 +15,14 @@
 <header class="site-header">
   <div class="wrap bar">
     <a class="brand" href="index.html">
-      <span class="uni">СФУ · ИФБиБТ</span>
-      <span class="dept">Кафедра биофизики</span>
+      <span class="logos">
+        <img src="assets/img/logo-ifbibt.png" alt="Логотип ИФБиБТ">
+        <img src="assets/img/logo-network.png" alt="">
+      </span>
+      <span class="txt">
+        <span class="uni">СФУ · ИФБиБТ</span>
+        <span class="dept">Кафедра биофизики</span>
+      </span>
     </a>
     <nav class="site-nav" aria-label="Основная навигация">
       <a href="index.html" aria-current="page">Главная</a>
@@ -28,6 +34,7 @@
 
 <main>
   <section class="hero">
+    <canvas id="molecules" aria-hidden="true"></canvas>
     <div class="wrap">
       <p class="eyebrow">Виртуальный практикум</p>
       <h1>Лабораторные работы, которые <em>запускаются прямо в браузере</em></h1>
@@ -73,8 +80,7 @@
             </div>
           </div>
           <div class="foot">
-            <a class="btn btn-run" href="labs/lab01-fieldwork/hydro-point.html">Запустить приложение</a>
-            <a class="btn btn-doc" href="labs/lab01-fieldwork/index.html">Страница работы</a>
+            <a class="btn btn-run" href="labs/lab01-fieldwork/index.html">Страница работы</a>
           </div>
         </article>
 
@@ -96,7 +102,7 @@
             </div>
           </div>
           <div class="foot">
-            <a class="btn btn-run" href="labs/lab02-neuroevolution/neuro-maze.html">Запустить симулятор</a>
+            <a class="btn btn-run" href="labs/lab02-neuroevolution/index.html">Страница работы</a>
             <a class="btn btn-doc" href="docs/metodichka_neuroevolution.docx" download>Методичка (.docx)</a>
           </div>
         </article>
@@ -116,8 +122,7 @@
             </div>
           </div>
           <div class="foot">
-            <a class="btn btn-run" href="labs/lab03-bios3/bios3.html">Запустить симулятор</a>
-            <a class="btn btn-doc" href="labs/lab03-bios3/index.html">Страница работы</a>
+            <a class="btn btn-run" href="labs/lab03-bios3/index.html">Страница работы</a>
           </div>
         </article>
       </div>
@@ -171,5 +176,6 @@
   </div>
 </footer>
 
+<script src="assets/js/site.js"></script>
 </body>
 </html>

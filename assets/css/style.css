@@ -9,6 +9,8 @@
   --sfu-orange: #ee7203;      /* фирменный красно-оранжевый */
   --sfu-rust:   #b84a00;      /* тёмный красно-оранжевый */
   --sfu-honey:  #ffb25e;
+  --ifbibt:     #1a5632;      /* зелёный ИФБиБТ */
+  --ifbibt-soft:#e9f2ec;
   --ink:        #17191d;
   --dim:        #5f6672;
   --paper:      #ffffff;
@@ -63,7 +65,10 @@ a:focus-visible, button:focus-visible {
   padding: 14px 0;
   flex-wrap: wrap;
 }
-.brand { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+.brand .logos { display: flex; align-items: center; gap: 8px; }
+.brand .logos img { height: 40px; width: auto; display: block; }
+.brand .txt { display: flex; flex-direction: column; }
 .brand:hover { color: var(--ink); }
 .brand .uni {
   font-size: 12.5px;
@@ -177,6 +182,11 @@ a:focus-visible, button:focus-visible {
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(23, 25, 29, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.lab-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(23, 25, 29, 0.1);
 }
 .lab-card .cover { display: block; border-bottom: 1px solid var(--line); }
 .lab-card .cover img { display: block; width: 100%; height: 148px; object-fit: cover; }
@@ -189,7 +199,7 @@ a:focus-visible, button:focus-visible {
   font-weight: 600;
 }
 .lab-card .head .id { color: var(--sfu-rust); }
-.lab-card .status { color: #3d7a45; }
+.lab-card .status { color: var(--ifbibt); }
 .lab-card .status.soon { color: var(--dim); font-weight: 500; }
 .lab-card .status.test { color: var(--sfu-rust); }
 .lab-card .body { padding: 10px 18px 16px; flex: 1; }
@@ -303,3 +313,53 @@ a:focus-visible, button:focus-visible {
   color: var(--dim);
 }
 .site-footer .wrap { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+
+
+/* ---------- Анимация появления и hero-канвас ---------- */
+.hero { position: relative; overflow: hidden; }
+#molecules {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; }
+  .lab-card:hover { transform: none; }
+}
+
+/* ---------- Шторка кодового слова ---------- */
+.gate { margin-bottom: 4px; }
+.gate label {
+  display: block;
+  font-weight: 600;
+  font-size: 14.5px;
+  margin-bottom: 8px;
+}
+.gate .row { display: flex; gap: 8px; }
+.gate input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+}
+.gate input:focus { outline: none; border-color: var(--sfu-orange); }
+.gate button {
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--ifbibt);
+  color: #fff;
+  cursor: pointer;
+}
+.gate button:hover { background: #14421f; }
+.gate .gate-msg { font-size: 13px; color: var(--sfu-rust); margin-top: 8px; min-height: 1.2em; }
+.gate .gate-note { font-size: 12.5px; color: var(--dim); margin-top: 6px; }
