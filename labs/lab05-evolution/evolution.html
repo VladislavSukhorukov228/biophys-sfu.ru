@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Эволюция: физика жизни — симулятор отбора</title>
+<style>
+:root{
+  --bg:#0a0f1a; --panel:#121a2b; --line:#243350; --ink:#e8edf7; --dim:#8a97b3;
+  --teal:#3ee6c1; --coral:#ff7a6b; --gold:#e0b34a; --blue:#8ab6ff; --green:#7fae7f;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'Cascadia Mono','Roboto Mono',Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:14px;font-family:var(--mono);letter-spacing:.08em;color:var(--gold)}
+.stats{display:flex;gap:12px;font-size:12px;color:var(--dim);margin-left:auto;font-family:var(--mono)}
+.stats b{color:var(--ink)}
+.stats .h b{color:var(--teal)} .stats .p b{color:var(--coral)}
+#sEvt{color:var(--coral);font-size:12px;width:100%}
+main{flex:1;position:relative;min-height:0}
+#world{width:100%;height:100%;display:block;touch-action:manipulation}
+.sheet{position:absolute;inset:0;overflow-y:auto;background:var(--bg);padding:14px 14px 20px}
+.sheet h2{font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:14px 0 8px}
+.sheet h2:first-child{margin-top:0}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:14px}
+.row label{flex:1}
+.row output{font-family:var(--mono);font-size:13px;color:var(--teal);min-width:60px;text-align:right}
+input[type=range]{flex:2;accent-color:var(--gold)}
+button{font:inherit;font-weight:600;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer}
+button:active{border-color:var(--gold)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.hyp{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.hyp b{font-size:14px}
+.hyp p{font-size:13px;color:var(--dim);margin:6px 0 10px;line-height:1.45}
+.legend{font-size:12px;color:var(--dim);margin:4px 0 10px;line-height:1.6}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+canvas.chart{width:100%;height:180px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+nav{display:flex;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:none;background:none;border-radius:0;padding:10px 2px;font-size:11.5px;color:var(--dim)}
+nav button.active{color:var(--gold)}
+#inspector{position:absolute;left:10px;bottom:10px;right:10px;max-width:340px;background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;font-size:13.5px}
+#inspector h3{font-size:13px;color:var(--gold);margin-bottom:6px;font-family:var(--mono)}
+#insClose{position:absolute;top:6px;right:8px;border:none;background:none;color:var(--dim);font-size:18px;padding:4px}
+label.chk{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px}
+.note{font-size:12.5px;color:var(--dim);line-height:1.5;margin-bottom:10px}
+.formula{font-family:var(--mono);font-size:12.5px;color:var(--teal);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ЭВОЛЮЦИЯ · ФИЗИКА ЖИЗНИ</h1>
+  <div class="stats">
+    <span>тик <b id="sN">0</b></span>
+    <span class="h">жертвы <b id="sH">0</b></span>
+    <span class="p">хищники <b id="sP">0</b></span>
+    <span>биом. Х/Ж <b id="sB">—</b></span>
+  </div>
+  <span id="sEvt"></span>
+</header>
+
+<main>
+  <canvas id="world"></canvas>
+
+  <div class="sheet" id="sheet-ctrl" hidden>
+    <h2>Параметры среды</h2>
+    <div class="row"><label>Температура</label><input type="range" id="pT" min="5" max="35" step="1" value="20"><output id="vT">20 °C</output></div>
+    <div class="row"><label>Регенерация субстрата r</label><input type="range" id="pR" min="0.01" max="0.09" step="0.005" value="0.035"><output id="vR">0.035</output></div>
+    <div class="row"><label>Сила мутаций σ</label><input type="range" id="pM" min="0.01" max="0.30" step="0.01" value="0.08"><output id="vM">0.08</output></div>
+    <div class="row"><label>Усвоение добычи</label><input type="range" id="pA" min="0.10" max="0.90" step="0.05" value="0.70"><output id="vA">0.70</output></div>
+    <label class="chk"><input type="checkbox" id="pMig" checked> Приток мигрантов при низкой численности (эффект спасения)</label>
+    <h2>Симуляция</h2>
+    <div class="row"><label>Скорость</label><input type="range" id="speed" min="1" max="8" step="1" value="1"><output id="vSpeed">×1</output></div>
+    <div class="btnrow">
+      <button id="btnPause">⏸ Пауза</button>
+      <button id="btnReset">↻ Новый мир</button>
+    </div>
+    <h2>Физика модели</h2>
+    <div class="formula">метаболизм = B·m·Q10, Q10 = 2^((T−20)/10)</div>
+    <div class="formula">цена движения = k·m·v², k = 0.0013</div>
+    <div class="formula">субстрат: dS/dt = r·S·(1−S/K)</div>
+    <div class="formula">геном: масса · скорость · чутьё · усвоение + мутации Гаусса</div>
+    <p class="note">Стабилизаторы экосистемы: насыщение хищника (Холлинг II),
+    рефугиум в густой траве, территориальность хищников, цена скорости в покое,
+    миграционное спасение. Каждый можно исследовать отдельно.</p>
+  </div>
+
+  <div class="sheet" id="sheet-hyp" hidden>
+    <h2>Восемь гипотез (ЕСЛИ · ТО · ПОТОМУ ЧТО)</h2>
+    <p class="note">Нажмите «Запустить эксперимент» — параметры установятся сами,
+    мир перезапустится. Наблюдайте и сверяйте прогноз с графиками.</p>
+    <div id="hyps"></div>
+  </div>
+
+  <div class="sheet" id="sheet-charts" hidden>
+    <h2>Численность</h2>
+    <p class="legend"><i style="background:#3ee6c1"></i>травоядные ·
+      <i style="background:#ff7a6b"></i>хищники ·
+      <i style="background:#7fae7f"></i>субстрат (÷400)</p>
+    <canvas id="chart" class="chart"></canvas>
+    <h2>Эволюция признаков жертв</h2>
+    <p class="legend"><i style="background:#e0b34a"></i>средняя масса ·
+      <i style="background:#8ab6ff"></i>средняя скорость</p>
+    <canvas id="traits" class="chart"></canvas>
+  </div>
+
+  <div class="sheet" id="sheet-data" hidden>
+    <h2>Экспорт данных</h2>
+    <p class="note">Каждые 15 тиков записывается строка: численности, субстрат,
+    средние признаки, соотношение биомасс хищники/жертвы, параметры среды.
+    Формат CSV (точка с запятой) — открывается в Excel.</p>
+    <div class="btnrow"><button id="btnCSV">⇓ Скачать CSV</button></div>
+    <h2>О программе</h2>
+    <p class="note">«Эволюция: физика жизни» — агентная модель потока энергии и
+    естественного отбора. Браузерная версия учебной игры кафедры биофизики
+    СФУ; работает офлайн, данные никуда не передаются. Соотношение биомасс
+    хищников и жертв в шапке — экспериментальная проверка правила Линдемана.</p>
+  </div>
+
+  <div id="inspector" hidden>
+    <button id="insClose">✕</button>
+    <h3 id="insTitle"></h3>
+    <div id="insBody"></div>
+  </div>
+</main>
+
+<nav>
+  <button id="tab-world" class="active">🌍 Мир</button>
+  <button id="tab-ctrl">⚙ Управление</button>
+  <button id="tab-hyp">🧪 Гипотезы</button>
+  <button id="tab-charts">📈 Графики</button>
+  <button id="tab-data">⇓ Данные</button>
+</nav>
+
+<script>
+/* ЭВОЛЮЦИЯ: физика жизни — расчётное ядро (без DOM).
+   Модель:
+   - метаболизм Q10 (Вант-Гофф): BASE·m·2^((T−20)/10)
+   - цена движения: k·m·v², k=0.0007
+   - передача энергии по цепи (Линдеман): gain = E_жертвы·η, η≈0.10
+   - логистический субстрат (Ферхюльст): dS/dt = r·S·(1−S/K) на клетку
+   - геном: масса, скорость, чутьё, усвоение; мутации Гаусса; отбор
+*/
+'use strict';
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+var P = {
+  W: 150, H: 150,          // мир, у.е.
+  GRID: 30,                // клеток субстрата по стороне
+  S_K: 120,                // ёмкость клетки субстрата
+  S_R: 0.035,              // скорость регенерации субстрата
+  T: 20,                   // температура, °C
+  ASSIM: 0.70,             // физиологическое усвоение добычи (КПД трапезы)
+  MUT: 0.08,               // сила мутаций (сигма, доля признака)
+  K_MOVE: 0.0013,
+  BASE_H: 0.055,           // базовый метаболизм травоядного на ед. массы
+  BASE_P: 0.020,           // хищника (ниже: крупнее и экономнее)
+  EAT_RATE: 2.6,           // сколько субстрата съедает травоядное за тик на ед. массы^0.75
+  DIGEST_H: 0.65,          // усвоение растительной пищи (модифицируется геномом)
+  E_BODY: 20,              // энергия тканей на ед. массы жертвы
+  REPRO_MULT_H: 26,        // порог деления: масса × множитель
+  REPRO_MULT_P: 22,
+  CHILD_SHARE: 0.42,       // ребёнку и родителю по доле, остальное — цена деления
+  START_H: 110, START_P: 20,
+  HUNT_R: 2.2,             // радиус атаки
+  MIGRATION: true,         // приток мигрантов при низкой численности (метапопуляция)
+  TERR_R: 8,              // радиус территориальности хищника
+  PRED_GUT: 0.9            // доля добычи, которую хищник способен усвоить за раз (от своего дефицита)
+};
+
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+function makeSim(seed, over) {
+  var rnd = mulberry32(seed || 1);
+  var p = Object.assign({}, P, over || {});
+  var gauss = function () {
+    var u = 0, v = 0;
+    while (u === 0) u = rnd(); while (v === 0) v = rnd();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+
+  var cellN = p.GRID, cellW = p.W / cellN;
+  var sub = new Float64Array(cellN * cellN);
+  for (var i = 0; i < sub.length; i++) sub[i] = p.S_K * (0.5 + 0.5 * rnd());
+
+  var nextId = 1;
+  function org(kind, x, y, g, e) {
+    return {
+      id: nextId++, kind: kind, x: x, y: y,
+      dirX: 0, dirY: 0, age: 0, digest: 0, cool: 0,
+      g: g, e: e,
+      tx: rnd() * p.W, ty: rnd() * p.H  // цель блуждания
+    };
+  }
+  function randGenome(kind) {
+    return kind === 'h' ? {
+      m: 6 + rnd() * 6,        // масса 6–12
+      v: 0.9 + rnd() * 0.8,    // скорость
+      s: 8 + rnd() * 8,        // чутьё
+      d: 0.55 + rnd() * 0.25   // усвоение
+    } : {
+      m: 14 + rnd() * 8,       // хищник крупнее
+      v: 1.1 + rnd() * 0.8,
+      s: 20 + rnd() * 12,      // и дальнозорче
+      d: 0.8 + rnd() * 0.15
+    };
+  }
+  var orgs = [];
+  for (i = 0; i < p.START_H; i++) {
+    var g = randGenome('h');
+    orgs.push(org('h', rnd() * p.W, rnd() * p.H, g, g.m * 12));
+  }
+  for (i = 0; i < p.START_P; i++) {
+    g = randGenome('p');
+    orgs.push(org('p', rnd() * p.W, rnd() * p.H, g, g.m * 14));
+  }
+
+  function mutate(g, kind) {
+    var s = p.MUT;
+    var n = {
+      m: clamp(g.m * (1 + gauss() * s), kind === 'h' ? 3 : 8, kind === 'h' ? 20 : 34),
+      v: clamp(g.v * (1 + gauss() * s), 0.3, 3.2),
+      s: clamp(g.s * (1 + gauss() * s), 3, 40),
+      d: clamp(g.d * (1 + gauss() * s * 0.6), 0.3, 0.95)
+    };
+    return n;
+  }
+
+  function q10(T) { return Math.pow(2, (T - 20) / 10); }
+
+  var tick = 0, lastMigr = -1e9;
+  var stats = null;
+
+  function step() {
+    tick++;
+    var Q = q10(p.T);
+    // регенерация субстрата (Ферхюльст)
+    for (var c = 0; c < sub.length; c++) {
+      var S = sub[c];
+      sub[c] = clamp(S + p.S_R * S * (1 - S / p.S_K) + 0.02, 0, p.S_K);
+    }
+    var born = [], herbs = [], preds = [];
+    for (var k = 0; k < orgs.length; k++) (orgs[k].kind === 'h' ? herbs : preds).push(orgs[k]);
+
+    for (k = 0; k < orgs.length; k++) {
+      var o = orgs[k];
+      if (o.e <= 0) continue;
+      o.age++;
+      var g = o.g, speed = g.v;
+
+      if (o.kind === 'h') {
+        // травоядное: ест клетку под собой, ищет богатую клетку в радиусе чутья
+        var ci = Math.min(cellN - 1, Math.floor(o.x / cellW));
+        var cj = Math.min(cellN - 1, Math.floor(o.y / cellW));
+        var idx = cj * cellN + ci;
+        // бегство от ближайшего хищника в радиусе чутья — приоритет
+        var thr = null, thrD = 1e9;
+        for (var q = 0; q < preds.length; q++) {
+          var pr = preds[q];
+          var dx = pr.x - o.x, dy = pr.y - o.y, D = dx * dx + dy * dy;
+          if (D < thrD) { thrD = D; thr = pr; }
+        }
+        if (thr && thrD < g.s * g.s) {
+          var L = Math.sqrt(thrD) || 1;
+          o.dirX = -(thr.x - o.x) / L; o.dirY = -(thr.y - o.y) / L;
+          speed = g.v * 1.25; // спринт
+        } else if (sub[idx] > 12) {
+          speed = 0.15; // пасётся
+          var eat = Math.min(sub[idx], p.EAT_RATE * Math.pow(g.m, 0.75));
+          sub[idx] -= eat;
+          o.e += eat * p.DIGEST_H * g.d;
+        } else {
+          // ищет самую богатую соседнюю клетку
+          var best = idx, bv = sub[idx];
+          for (var di = -1; di <= 1; di++) for (var dj = -1; dj <= 1; dj++) {
+            var ni = ci + di, nj = cj + dj;
+            if (ni < 0 || nj < 0 || ni >= cellN || nj >= cellN) continue;
+            if (sub[nj * cellN + ni] > bv) { bv = sub[nj * cellN + ni]; best = nj * cellN + ni; }
+          }
+          var bx = (best % cellN + 0.5) * cellW, by = (Math.floor(best / cellN) + 0.5) * cellW;
+          L = Math.hypot(bx - o.x, by - o.y) || 1;
+          o.dirX = (bx - o.x) / L; o.dirY = (by - o.y) / L;
+        }
+      } else {
+        // хищник: переваривание добычи (Холлинг, тип II) — сытый не охотится
+        if (o.digest > 0) { o.digest--; }
+        if (o.cool > 0) { o.cool--; }
+        // территориальность (интерференция Беддингтона–ДеАнджелиса):
+        // конкурент рядом — охота подавлена, хищники расходятся
+        var rival = null, rivD = 1e9;
+        for (q = 0; q < preds.length; q++) {
+          var pp = preds[q];
+          if (pp === o || pp.e <= 0) continue;
+          dx = pp.x - o.x; dy = pp.y - o.y; D = dx * dx + dy * dy;
+          if (D < rivD) { rivD = D; rival = pp; }
+        }
+        var crowded = rival && rivD < p.TERR_R * p.TERR_R;
+        var prey = null, preyD = 1e9;
+        if (o.digest <= 0 && o.cool <= 0) {
+          for (q = 0; q < herbs.length; q++) {
+            var hb = herbs[q];
+            if (hb.e <= 0) continue;
+            dx = hb.x - o.x; dy = hb.y - o.y; D = dx * dx + dy * dy;
+            // рефугиум: в густой траве жертва заметна лишь с половины дистанции
+            var hci = Math.min(cellN - 1, Math.floor(hb.x / cellW));
+            var hcj = Math.min(cellN - 1, Math.floor(hb.y / cellW));
+            var hidden = sub[hcj * cellN + hci] > p.S_K * 0.8;
+            var hidR = Math.min(g.s * 0.35, 8);
+            if (hidden && D > hidR * hidR) continue;
+            if (D < preyD) { preyD = D; prey = hb; }
+          }
+        }
+        var sense = g.s * (o.e < g.m * p.REPRO_MULT_P * 0.5 ? 1.2 : 1);
+        if (prey && preyD < sense * sense) {
+          L = Math.sqrt(preyD) || 1;
+          o.dirX = (prey.x - o.x) / L; o.dirY = (prey.y - o.y) / L;
+          speed = g.v * 1.4; // бросок
+          if (preyD < p.HUNT_R * p.HUNT_R) {
+            // успех атаки зависит от соотношения скоростей (гонка вооружений)
+            var pKill = clamp(0.55 * (g.v * 1.4) / (prey.g.v * 1.25), 0.15, 0.9) * (crowded ? 0.5 : 1);
+            if (rnd() < pKill) {
+              // добыча: энергия жертвы + ткани, через КПД Линдемана
+              var meal = (prey.e + prey.g.m * p.E_BODY) * p.ASSIM * g.d;
+              o.e = Math.min(o.e + meal, o.g.m * p.REPRO_MULT_P * 1.5); // сытость ограничена
+              o.digest = Math.round(60 + prey.g.m * 4); // время обработки добычи
+              prey.e = -1; // погибла
+            } else {
+              o.cool = 14; // промах: восстановление, жертва отскакивает
+              prey.x = clamp(prey.x + gauss() * 3, 0, p.W);
+              prey.y = clamp(prey.y + gauss() * 3, 0, p.H);
+            }
+          }
+        } else if (o.digest > 0) {
+          speed = g.v * 0.25; // отдыхает после еды
+        } else {
+          // блуждание к случайной цели
+          if (Math.hypot(o.tx - o.x, o.ty - o.y) < 4) { o.tx = rnd() * p.W; o.ty = rnd() * p.H; }
+          L = Math.hypot(o.tx - o.x, o.ty - o.y) || 1;
+          o.dirX = (o.tx - o.x) / L; o.dirY = (o.ty - o.y) / L;
+          speed = g.v * 0.6; // патрулирует экономно
+        }
+      }
+
+      // движение и границы
+      o.x = clamp(o.x + o.dirX * speed, 0, p.W);
+      o.y = clamp(o.y + o.dirY * speed, 0, p.H);
+
+      // энергозатраты: метаболизм Q10 + движение k·m·v²
+      var base = (o.kind === 'h' ? p.BASE_H : p.BASE_P);
+      // быстрый фенотип дороже и в покое: содержание мускулатуры
+      o.e -= base * g.m * Q * (0.65 + 0.35 * g.v);
+      o.e -= p.K_MOVE * g.m * speed * speed * 10;
+
+      // размножение делением
+      var thrE = g.m * (o.kind === 'h' ? p.REPRO_MULT_H : p.REPRO_MULT_P);
+      var mature = o.kind === 'h' ? 30 : 150;
+      if (o.e > thrE && o.age > mature) {
+        var cg = mutate(g, o.kind);
+        var childE = o.e * p.CHILD_SHARE;
+        o.e = o.e * p.CHILD_SHARE;
+        var ch = org(o.kind, clamp(o.x + gauss(), 0, p.W), clamp(o.y + gauss(), 0, p.H), cg, childE);
+        born.push(ch);
+      }
+      // предельный возраст ~ масса
+      if (o.age > 900 + g.m * 40) o.e = -1;
+    }
+    orgs = orgs.filter(function (o) { return o.e > 0; }).concat(born);
+
+    // эффект спасения: миграция из-за границ мира при низкой численности
+    if (p.MIGRATION && tick - lastMigr > 300) {
+      var cntH = 0, cntP = 0;
+      for (k = 0; k < orgs.length; k++) (orgs[k].kind === 'h' ? cntH++ : cntP++);
+      var edge = function () {
+        var side = Math.floor(rnd() * 4);
+        return side === 0 ? [rnd() * p.W, 1] : side === 1 ? [rnd() * p.W, p.H - 1]
+             : side === 2 ? [1, rnd() * p.H] : [p.W - 1, rnd() * p.H];
+      };
+      var added = false;
+      if (cntH < 14) {
+        for (var mi = 0; mi < 4; mi++) {
+          var gm = randGenome('h'), xy = edge();
+          orgs.push(org('h', xy[0], xy[1], gm, gm.m * 12));
+        }
+        added = true;
+      }
+      if (cntP < 5) {
+        for (mi = 0; mi < 2; mi++) {
+          gm = randGenome('p'); xy = edge();
+          orgs.push(org('p', xy[0], xy[1], gm, gm.m * 14));
+        }
+        added = true;
+      }
+      if (added) lastMigr = tick;
+    }
+
+    // сводка
+    var nh = 0, np = 0, st = 0, mh = 0, vh = 0, sh = 0, mp = 0;
+    for (c = 0; c < sub.length; c++) st += sub[c];
+    for (k = 0; k < orgs.length; k++) {
+      o = orgs[k];
+      if (o.kind === 'h') { nh++; mh += o.g.m; vh += o.g.v; sh += o.g.s; }
+      else { np++; mp += o.g.m; }
+    }
+    stats = {
+      tick: tick, nh: nh, np: np, sub: st,
+      mh: nh ? mh / nh : 0, vh: nh ? vh / nh : 0, sh_: nh ? sh / nh : 0,
+      mp: np ? mp / np : 0
+    };
+    return stats;
+  }
+
+  return { step: step, params: p, orgs: function () { return orgs; },
+           sub: function () { return sub; }, stats: function () { return stats; },
+           cellN: cellN, cellW: cellW };
+}
+
+
+/* ============================ ИНТЕРФЕЙС ============================ */
+var sim = null, running = true, simSpeed = 1, seed = 1;
+var histT = [], histH = [], histP = [], histS = [], histV = [], histM = [];
+var csvRows = [['tick','N_herb','N_pred','substrate','mean_mass_h','mean_speed_h','mean_sense_h','mean_mass_p','biomass_ratio_pct','T','S_R','MUT','ASSIM']];
+var selected = null;
+
+var elWorld = document.getElementById('world');
+var cw = elWorld.getContext('2d');
+var elChart = document.getElementById('chart');
+var cc = elChart.getContext('2d');
+var elTraits = document.getElementById('traits');
+var ct = elTraits.getContext('2d');
+
+function $(id) { return document.getElementById(id); }
+
+function newWorld(over) {
+  seed = (Math.random() * 1e9) | 0;
+  sim = makeSim(seed, over || currentOverrides());
+  histT = []; histH = []; histP = []; histS = []; histV = []; histM = [];
+  csvRows = csvRows.slice(0, 1);
+  selected = null;
+  $('inspector').hidden = true;
+}
+function currentOverrides() {
+  return {
+    T: +$('pT').value,
+    S_R: +$('pR').value,
+    MUT: +$('pM').value,
+    ASSIM: +$('pA').value,
+    MIGRATION: $('pMig').checked
+  };
+}
+function applyParams() {
+  var o = currentOverrides();
+  sim.params.T = o.T; sim.params.S_R = o.S_R;
+  sim.params.MUT = o.MUT; sim.params.ASSIM = o.ASSIM;
+  sim.params.MIGRATION = o.MIGRATION;
+  $('vT').textContent = o.T + ' °C';
+  $('vR').textContent = o.S_R.toFixed(3);
+  $('vM').textContent = o.MUT.toFixed(2);
+  $('vA').textContent = o.ASSIM.toFixed(2);
+}
+['pT','pR','pM','pA'].forEach(function (id) { $(id).addEventListener('input', applyParams); });
+$('pMig').addEventListener('change', applyParams);
+
+/* ---------- гипотезы ---------- */
+var HYP = [
+  { n:'Жара и правило Q10', par:{T:30},
+    t:'ЕСЛИ поднять температуру до 30 °C, ТО численность и масса организмов снизятся, ПОТОМУ ЧТО метаболизм удвоится по правилу Вант-Гоффа: Q10 = 2^((T−20)/10).' },
+  { n:'Холод и правило Q10', par:{T:10},
+    t:'ЕСЛИ охладить среду до 10 °C, ТО организмов станет больше и они смогут быть крупнее, ПОТОМУ ЧТО расход энергии на метаболизм упадёт вдвое.' },
+  { n:'Богатая среда (Ферхюльст)', par:{S_R:0.07},
+    t:'ЕСЛИ удвоить скорость восстановления субстрата, ТО ёмкость среды K вырастет, ПОТОМУ ЧТО логистический рост dS/dt = r·S·(1−S/K) насыщается позже.' },
+  { n:'Скудная среда', par:{S_R:0.015},
+    t:'ЕСЛИ уменьшить восстановление субстрата, ТО равновесная численность травоядных упадёт, ПОТОМУ ЧТО ёмкость среды K снизится.' },
+  { n:'Мир без хищников', par:{noPred:1},
+    t:'ЕСЛИ убрать хищников, ТО травоядные вырастут до ёмкости среды и стабилизируются около K, ПОТОМУ ЧТО останется только конкуренция за субстрат.' },
+  { n:'Ураган мутаций', par:{MUT:0.25},
+    t:'ЕСЛИ утроить силу мутаций, ТО разнообразие признаков вырастет, но появится много нежизнеспособных фенотипов, ПОТОМУ ЧТО отбор не успевает выбраковывать отклонения.' },
+  { n:'Отбор на скорость', par:{},
+    t:'ЕСЛИ в мире есть хищники, ТО средняя скорость жертв будет расти поколение за поколением, ПОТОМУ ЧТО медленных выедают первыми (наблюдайте график признаков).' },
+  { n:'Пирамида биомасс', par:{},
+    t:'ЕСЛИ измерить биомассы, ТО хищники составят лишь единицы процентов от биомассы жертв, ПОТОМУ ЧТО на каждый трофический уровень передаётся малая доля энергии (Линдеман).' }
+];
+var hypBox = $('hyps');
+HYP.forEach(function (h, i) {
+  var d = document.createElement('div');
+  d.className = 'hyp';
+  d.innerHTML = '<b>' + (i + 1) + '. ' + h.n + '</b><p>' + h.t + '</p><button>Запустить эксперимент</button>';
+  d.querySelector('button').addEventListener('click', function () {
+    $('pT').value = h.par.T !== undefined ? h.par.T : 20;
+    $('pR').value = h.par.S_R !== undefined ? h.par.S_R : 0.035;
+    $('pM').value = h.par.MUT !== undefined ? h.par.MUT : 0.08;
+    $('pA').value = 0.70;
+    applyParams();
+    var over = currentOverrides();
+    if (h.par.noPred) { over.START_P = 0; over.MIGRATION = false; $('pMig').checked = false; }
+    newWorld(over);
+    showTab('world');
+  });
+  hypBox.appendChild(d);
+});
+
+/* ---------- вкладки ---------- */
+function showTab(name) {
+  ['world', 'ctrl', 'hyp', 'charts', 'data'].forEach(function (t) {
+    $('tab-' + t).classList.toggle('active', t === name);
+    $('sheet-' + t) && ($('sheet-' + t).hidden = t !== name);
+  });
+  $('world').style.display = (name === 'world') ? 'block' : 'none';
+  if (name === 'charts') drawCharts();
+}
+['world', 'ctrl', 'hyp', 'charts', 'data'].forEach(function (t) {
+  $('tab-' + t).addEventListener('click', function () { showTab(t); });
+});
+
+/* ---------- управление ---------- */
+$('btnPause').addEventListener('click', function () {
+  running = !running;
+  this.textContent = running ? '⏸ Пауза' : '▶ Продолжить';
+});
+$('btnReset').addEventListener('click', function () { newWorld(); });
+$('speed').addEventListener('input', function () {
+  simSpeed = +this.value;
+  $('vSpeed').textContent = '×' + simSpeed;
+});
+
+/* ---------- отрисовка мира ---------- */
+function fit() {
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var r = elWorld.getBoundingClientRect();
+  elWorld.width = r.width * dpr; elWorld.height = r.height * dpr;
+  cw.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', fit);
+
+function drawWorld() {
+  var r = elWorld.getBoundingClientRect();
+  var p = sim.params, sc = Math.min(r.width / p.W, r.height / p.H);
+  var offX = (r.width - p.W * sc) / 2, offY = (r.height - p.H * sc) / 2;
+  cw.clearRect(0, 0, r.width, r.height);
+  // субстрат
+  var sub = sim.sub(), n = sim.cellN, cwd = sim.cellW;
+  for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) {
+    var v = sub[j * n + i] / p.S_K;
+    var refuge = v > 0.8;
+    cw.fillStyle = refuge ? 'rgba(38,110,58,' + (0.35 + v * 0.45) + ')'
+                          : 'rgba(52,120,66,' + (0.06 + v * 0.42) + ')';
+    cw.fillRect(offX + i * cwd * sc, offY + j * cwd * sc, cwd * sc + 0.5, cwd * sc + 0.5);
+  }
+  // организмы
+  var os = sim.orgs();
+  for (var k = 0; k < os.length; k++) {
+    var o = os[k], x = offX + o.x * sc, y = offY + o.y * sc;
+    var rad = Math.max(2, Math.sqrt(o.g.m) * 1.1 * sc / 4);
+    if (o.kind === 'h') {
+      cw.fillStyle = '#3ee6c1';
+      cw.beginPath(); cw.arc(x, y, rad, 0, 6.2832); cw.fill();
+    } else {
+      cw.fillStyle = o.digest > 0 ? '#a2543f' : '#ff7a6b';
+      cw.beginPath();
+      cw.moveTo(x, y - rad * 1.3); cw.lineTo(x + rad * 1.2, y + rad);
+      cw.lineTo(x - rad * 1.2, y + rad); cw.closePath(); cw.fill();
+    }
+    if (selected && selected.id === o.id) {
+      cw.strokeStyle = '#ffd28a'; cw.lineWidth = 2;
+      cw.beginPath(); cw.arc(x, y, rad + 4, 0, 6.2832); cw.stroke();
+    }
+  }
+  // карта -> координаты для тапа
+  drawWorld._sc = sc; drawWorld._ox = offX; drawWorld._oy = offY;
+}
+
+elWorld.addEventListener('pointerdown', function (e) {
+  var r = elWorld.getBoundingClientRect();
+  var wx = (e.clientX - r.left - drawWorld._ox) / drawWorld._sc;
+  var wy = (e.clientY - r.top - drawWorld._oy) / drawWorld._sc;
+  var best = null, bd = 25;
+  sim.orgs().forEach(function (o) {
+    var d = (o.x - wx) * (o.x - wx) + (o.y - wy) * (o.y - wy);
+    if (d < bd) { bd = d; best = o; }
+  });
+  selected = best;
+  var box = $('inspector');
+  if (best) {
+    box.hidden = false;
+    $('insTitle').textContent = (best.kind === 'h' ? 'Травоядное' : 'Хищник') + ' №' + best.id;
+    $('insBody').innerHTML =
+      'масса <b>' + best.g.m.toFixed(1) + '</b> · скорость <b>' + best.g.v.toFixed(2) + '</b><br>' +
+      'чутьё <b>' + best.g.s.toFixed(1) + '</b> · усвоение <b>' + best.g.d.toFixed(2) + '</b><br>' +
+      'энергия <b>' + best.e.toFixed(0) + '</b> · возраст <b>' + best.age + '</b>' +
+      (best.kind === 'p' && best.digest > 0 ? '<br><i>переваривает добычу</i>' : '');
+  } else box.hidden = true;
+});
+$('insClose').addEventListener('click', function () { selected = null; $('inspector').hidden = true; });
+
+/* ---------- графики ---------- */
+function drawLine(ctx, W, H, data, max, color) {
+  if (data.length < 2) return;
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+  for (var i = 0; i < data.length; i++) {
+    var x = i / (data.length - 1) * (W - 20) + 10;
+    var y = H - 16 - (data[i] / max) * (H - 30);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke();
+}
+function drawCharts() {
+  [[elChart, cc], [elTraits, ct]].forEach(function (pair) {
+    var el = pair[0], dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var r = el.getBoundingClientRect();
+    el.width = r.width * dpr; el.height = r.height * dpr;
+    pair[1].setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+  var W = elChart.getBoundingClientRect().width, H = elChart.getBoundingClientRect().height;
+  cc.clearRect(0, 0, W, H);
+  var maxN = Math.max(10, Math.max.apply(null, histH.concat(histP)), Math.max.apply(null, histS.map(function (s) { return s / 400; })));
+  drawLine(cc, W, H, histS.map(function (s) { return s / 400; }), maxN, '#7fae7f');
+  drawLine(cc, W, H, histH, maxN, '#3ee6c1');
+  drawLine(cc, W, H, histP, maxN, '#ff7a6b');
+  var W2 = elTraits.getBoundingClientRect().width, H2 = elTraits.getBoundingClientRect().height;
+  ct.clearRect(0, 0, W2, H2);
+  var maxT = Math.max(3, Math.max.apply(null, histM), Math.max.apply(null, histV));
+  drawLine(ct, W2, H2, histM, maxT, '#e0b34a');
+  drawLine(ct, W2, H2, histV, maxT, '#8ab6ff');
+}
+
+/* ---------- данные ---------- */
+$('btnCSV').addEventListener('click', function () {
+  var txt = csvRows.map(function (r) { return r.join(';'); }).join('\n');
+  var blob = new Blob(['\ufeff' + txt], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'эволюция_' + seed + '.csv';
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+});
+
+/* ---------- главный цикл ---------- */
+function loop() {
+  if (running && sim) {
+    for (var i = 0; i < simSpeed; i++) {
+      var s = sim.step();
+      if (s.tick % 5 === 0) {
+        histT.push(s.tick); histH.push(s.nh); histP.push(s.np); histS.push(s.sub);
+        histV.push(s.vh); histM.push(s.mh);
+        if (histT.length > 1400) { [histT, histH, histP, histS, histV, histM].forEach(function (a) { a.splice(0, 200); }); }
+      }
+      if (s.tick % 15 === 0) {
+        var os = sim.orgs(), bh = 0, bp = 0;
+        os.forEach(function (o) { o.kind === 'h' ? bh += o.g.m : bp += o.g.m; });
+        var ratio = bh > 0 ? (bp / bh * 100) : 0;
+        csvRows.push([s.tick, s.nh, s.np, s.sub.toFixed(0), s.mh.toFixed(2), s.vh.toFixed(3),
+          s.sh_.toFixed(2), s.mp.toFixed(2), ratio.toFixed(1),
+          sim.params.T, sim.params.S_R, sim.params.MUT, sim.params.ASSIM]);
+      }
+    }
+    var st = sim.stats();
+    if (st) {
+      $('sN').textContent = st.tick;
+      $('sH').textContent = st.nh;
+      $('sP').textContent = st.np;
+      var os2 = sim.orgs(), bh2 = 0, bp2 = 0;
+      os2.forEach(function (o) { o.kind === 'h' ? bh2 += o.g.m : bp2 += o.g.m; });
+      $('sB').textContent = bh2 > 0 ? (bp2 / bh2 * 100).toFixed(0) + '%' : '—';
+      if (st.nh === 0 || st.np === 0) $('sEvt').textContent =
+        st.nh === 0 ? 'травоядные вымерли' : (st.np === 0 ? 'хищники вымерли' : '');
+      else $('sEvt').textContent = '';
+    }
+    if ($('world').style.display !== 'none') drawWorld();
+    if (!$('sheet-charts').hidden) drawCharts();
+  }
+  requestAnimationFrame(loop);
+}
+
+applyParams();
+newWorld();
+fit();
+showTab('world');
+loop();
+
+</script>
+</body>
+</html>
