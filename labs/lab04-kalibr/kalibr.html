@@ -1,0 +1,1838 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>КАЛИБР — морфометрия частиц по SEM-снимкам</title>
+<style>
+  :root{
+    --bg:#0d1014;          /* рабочее поле (под стать тёмным SEM-снимкам) */
+    --panel:#151a21;        /* боковые панели */
+    --panel-2:#1b212b;      /* вложенные блоки */
+    --line:#2a323e;         /* разделители */
+    --ink:#e6edf3;          /* основной текст */
+    --ink-dim:#8d99a8;       /* приглушённый текст */
+    --accent:#35d6c4;        /* акцент инструмента (бирюза) */
+    --accent-2:#ffb347;      /* калибровка / штангенциркуль (янтарь) */
+    --danger:#ff6b6b;
+    --partical:#35d6c4;
+    --diatom:#e879c8;
+    --mono:ui-monospace,'SF Mono','JetBrains Mono','Cascadia Code',Menlo,Consolas,monospace;
+    --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:var(--sans);background:var(--bg);color:var(--ink);
+    display:flex;flex-direction:column;overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- ВЕРХНЯЯ ПАНЕЛЬ ---------- */
+  header{
+    display:flex;align-items:center;gap:18px;
+    padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);
+    flex:0 0 auto;z-index:5;
+  }
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand svg{display:block}
+  .brand .name{font-weight:800;letter-spacing:.22em;font-size:16px}
+  .brand .sub{font-size:11px;color:var(--ink-dim);letter-spacing:.04em;margin-top:1px}
+  .toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tool{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:7px 11px;font-size:13px;cursor:pointer;
+    font-family:var(--sans);transition:border-color .12s,background .12s,color .12s;
+    white-space:nowrap;
+  }
+  .tool:hover{border-color:var(--accent)}
+  .tool.active{border-color:var(--accent);background:rgba(53,214,196,.12);color:var(--accent)}
+  .tool.cal.active{border-color:var(--accent-2);background:rgba(255,179,71,.12);color:var(--accent-2)}
+  .tool.danger:hover{border-color:var(--danger);color:var(--danger)}
+  .tool svg{width:15px;height:15px}
+  .sep{width:1px;height:26px;background:var(--line);margin:0 4px}
+  .spacer{flex:1}
+  .ghost{background:transparent;border-color:transparent;color:var(--ink-dim);padding:6px 8px}
+  .ghost:hover{color:var(--ink);border-color:var(--line)}
+
+  /* ---------- МАКЕТ ---------- */
+  main{flex:1;display:flex;min-height:0}
+  .stage{flex:1;position:relative;min-width:0;background:
+      radial-gradient(circle at 50% 40%, #11161d 0%, #0a0d11 100%);}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #overlay{cursor:crosshair;touch-action:none}
+  .stage.pan #overlay{cursor:grab}
+  .stage.pan.grabbing #overlay{cursor:grabbing}
+
+  .hint{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    text-align:center;color:var(--ink-dim);pointer-events:none;max-width:420px;
+  }
+  .hint h2{font-weight:700;font-size:17px;color:var(--ink);margin:0 0 8px}
+  .hint p{margin:4px 0;font-size:13px;line-height:1.55}
+  .hint .drop{
+    margin-top:18px;border:1.5px dashed var(--line);border-radius:12px;padding:22px;
+    font-size:13px;
+  }
+  .stage.dragover .hint .drop{border-color:var(--accent);color:var(--accent)}
+
+  /* статус-плашка калибровки/масштаба */
+  .statusbar{
+    position:absolute;left:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap;
+    pointer-events:none;
+  }
+  .chip{
+    background:rgba(13,16,20,.82);border:1px solid var(--line);border-radius:7px;
+    padding:5px 10px;font-size:12px;font-family:var(--mono);color:var(--ink-dim);
+    backdrop-filter:blur(4px);
+  }
+  .chip b{color:var(--ink);font-weight:600}
+  .chip.ok{border-color:rgba(53,214,196,.5)}
+  .chip.ok b{color:var(--accent)}
+  .chip.warn{border-color:rgba(255,179,71,.5);color:var(--accent-2)}
+
+  .zoombox{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
+  .zoombox button{
+    width:34px;height:34px;border-radius:8px;background:rgba(13,16,20,.82);
+    border:1px solid var(--line);color:var(--ink);font-size:18px;cursor:pointer;
+    backdrop-filter:blur(4px);line-height:1;
+  }
+  .zoombox button:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ---------- БОКОВАЯ ПАНЕЛЬ ---------- */
+  aside{
+    flex:0 0 340px;width:340px;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .tab{
+    flex:1;text-align:center;padding:11px 4px;font-size:12.5px;cursor:pointer;
+    color:var(--ink-dim);border-bottom:2px solid transparent;letter-spacing:.02em;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .panel{flex:1;overflow-y:auto;padding:16px;display:none}
+  .panel.active{display:block}
+  .panel::-webkit-scrollbar{width:9px}
+  .panel::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}
+
+  .group{margin-bottom:20px}
+  .group > .lbl{
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-dim);
+    margin-bottom:9px;font-weight:600;
+  }
+  .row{display:flex;gap:8px;align-items:center}
+  .row + .row{margin-top:8px}
+
+  .labelchip{
+    display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+    border:1px solid var(--line);background:var(--panel-2);cursor:pointer;margin-bottom:7px;
+    transition:border-color .12s;
+  }
+  .labelchip:hover{border-color:var(--ink-dim)}
+  .labelchip.sel{border-color:var(--accent)}
+  .labelchip .dot{width:13px;height:13px;border-radius:3px;flex:0 0 auto}
+  .labelchip .nm{flex:1;font-size:13px}
+  .labelchip .cnt{font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+  .labelchip input[type=color]{width:20px;height:20px;border:none;background:none;padding:0;cursor:pointer}
+  .labelchip .x{color:var(--ink-dim);cursor:pointer;font-size:15px;padding:0 2px}
+  .labelchip .x:hover{color:var(--danger)}
+
+  input[type=text],input[type=number],select{
+    background:var(--bg);border:1px solid var(--line);border-radius:7px;color:var(--ink);
+    padding:8px 9px;font-size:13px;font-family:var(--sans);width:100%;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .miniinput{font-family:var(--mono)}
+  button.act{
+    background:var(--accent);color:#04201d;border:none;border-radius:8px;padding:9px 12px;
+    font-size:13px;font-weight:700;cursor:pointer;width:100%;
+  }
+  button.act:hover{filter:brightness(1.08)}
+  button.act.amber{background:var(--accent-2);color:#3a2400}
+  button.outline{
+    background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:9px 12px;font-size:13px;cursor:pointer;width:100%;font-family:var(--sans);
+  }
+  button.outline:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* таблица измерений */
+  .mtable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+  .mtable th{
+    text-align:right;color:var(--ink-dim);font-weight:600;padding:6px 6px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);
+    font-size:10px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;white-space:nowrap;
+  }
+  .mtable th:first-child,.mtable td:first-child{text-align:left}
+  .mtable td{padding:5px 6px;text-align:right;border-bottom:1px solid rgba(42,50,62,.5);white-space:nowrap}
+  .mtable tr{cursor:pointer}
+  .mtable tr:hover td{background:var(--panel-2)}
+  .mtable tr.sel td{background:rgba(53,214,196,.13)}
+  .mtable .ldot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+  .stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(42,50,62,.5);font-size:13px}
+  .stat .k{color:var(--ink-dim)}
+  .stat .v{font-family:var(--mono);font-weight:600}
+  .statcard{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:12px 13px;margin-bottom:11px}
+  .statcard h4{margin:0 0 8px;font-size:13px;display:flex;align-items:center;gap:8px}
+  .statcard h4 .dot{width:11px;height:11px;border-radius:3px}
+
+  .empty{color:var(--ink-dim);font-size:13px;text-align:center;padding:24px 8px;line-height:1.5}
+
+  .kbd{font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);
+    border-radius:4px;padding:1px 6px;font-size:11px;color:var(--ink-dim)}
+  .help{font-size:12px;color:var(--ink-dim);line-height:1.9}
+  .help div{display:flex;justify-content:space-between;gap:10px}
+
+  /* модальное окно */
+  .modal-bg{position:fixed;inset:0;background:rgba(5,7,10,.65);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:22px;width:340px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .modal h3{margin:0 0 6px;font-size:16px}
+  .modal p{margin:0 0 16px;font-size:13px;color:var(--ink-dim);line-height:1.5}
+  .modal .fields{display:flex;gap:8px;margin-bottom:16px}
+  .modal .fields > div{flex:1}
+  .modal .fields label{font-size:11px;color:var(--ink-dim);display:block;margin-bottom:4px}
+  .modal .actions{display:flex;gap:8px}
+  .modal .actions button{flex:1}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2);border:1px solid var(--accent);color:var(--ink);
+    padding:11px 18px;border-radius:9px;font-size:13px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* ---------- МОБИЛЬНАЯ ВЕРСИЯ ---------- */
+  @media (max-width:760px){
+    main{flex-direction:column}
+    aside{flex:0 0 46%;width:100%;border-left:none;border-top:1px solid var(--line)}
+    header{padding:8px 10px;gap:10px}
+    .brand .sub{display:none}
+    .tool{padding:8px 9px}
+  }
+  .draftbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;gap:8px;z-index:6}
+  .draftbar.show{display:flex}
+  .draftbar button{background:rgba(13,16,20,.9);border:1px solid var(--accent);color:var(--accent);border-radius:9px;padding:11px 16px;font-size:13.5px;font-family:var(--sans);cursor:pointer;backdrop-filter:blur(4px);white-space:nowrap}
+  .draftbar button:active{opacity:.75}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="3" y="11" width="20" height="4" rx="1" stroke="#35d6c4" stroke-width="1.6"/>
+      <path d="M7 11V7M13 11V5M19 11V7" stroke="#35d6c4" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M9 15v3M17 15v3" stroke="#ffb347" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="name">КАЛИБР <span style="font-size:10px;font-weight:600;color:#3a2400;background:#ffb347;border-radius:4px;padding:1px 5px;vertical-align:middle">v2.1.1</span></div>
+      <div class="sub">морфометрия частиц · SEM</div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="toolbar">
+    <button class="tool" id="btnOpenImg" title="Открыть снимок (PNG/JPG)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Снимок
+    </button>
+    <button class="tool" id="btnOpenJson" title="Открыть проект LabelMe (.json)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      Проект
+    </button>
+
+    <div class="sep"></div>
+
+    <button class="tool active" id="toolSelect" data-tool="select" title="Выделение / правка (V)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>
+      Выделить
+    </button>
+    <button class="tool" id="toolDraw" data-tool="draw" title="Обвести частицу (D)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l4 4 6-9"/><path d="M3 20h18" opacity=".4"/><polygon points="12,3 19,7 17,15 7,15 5,7" opacity=".5"/></svg>
+      Обвести
+    </button>
+    <button class="tool cal" id="toolCal" data-tool="calibrate" title="Измерить шкалу (C)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/><path d="M3 9v6M21 9v6M9 10v4M15 10v4M12 11v2"/></svg>
+      Шкала
+    </button>
+    <button class="tool danger" id="btnDelete" title="Удалить выбранное (Del)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+
+    <div class="spacer"></div>
+
+    <button class="tool" id="btnUndo" title="Отменить (Ctrl+Z)">↶</button>
+    <button class="tool ghost" id="btnHelp" title="Горячие клавиши">?</button>
+  </div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="img"></canvas>
+    <canvas id="overlay"></canvas>
+    <div class="draftbar" id="draftBar">
+      <button id="draftUndoPt">↶ точка</button>
+      <button id="draftDone">✓ Завершить контур</button>
+    </div>
+
+    <div class="hint" id="hint">
+      <h2>Откройте SEM-снимок</h2>
+      <p>Перетащите изображение сюда или нажмите <b>«Снимок»</b>.</p>
+      <p>Уже размечали в LabelMe? Откройте <b>«Проект»</b> — снимок и полигоны подхватятся автоматически.</p>
+      <div class="drop">Перетащите .jpg / .png / .json</div>
+    </div>
+
+    <div class="statusbar">
+      <div class="chip warn" id="chipScale">масштаб не задан · значения в пикселях</div>
+      <div class="chip" id="chipCount">частиц: <b>0</b></div>
+    </div>
+
+    <div class="zoombox">
+      <button id="zIn" title="Приблизить">+</button>
+      <button id="zFit" title="Вписать" style="font-size:13px">⊡</button>
+      <button id="zOut" title="Отдалить">−</button>
+    </div>
+  </div>
+
+  <aside>
+    <div class="tabs">
+      <div class="tab active" data-panel="annot">Разметка</div>
+      <div class="tab" data-panel="meas">Измерения</div>
+      <div class="tab" data-panel="stats">Статистика</div>
+      <div class="tab" data-panel="batch">Пакет</div>
+    </div>
+
+    <!-- ПАНЕЛЬ: РАЗМЕТКА -->
+    <div class="panel active" id="panel-annot">
+      <div class="group">
+        <div class="lbl">Текущая метка для обводки</div>
+        <div id="labelList"></div>
+        <div class="row" style="margin-top:6px">
+          <input type="text" id="newLabel" placeholder="новая метка…">
+          <button class="outline" id="addLabel" style="width:auto;white-space:nowrap">＋</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="lbl">Масштаб (калибровка)</div>
+        <button class="act amber" id="calBtn">Измерить шкалу на снимке</button>
+        <button class="outline" id="sidecarBtn" style="margin-top:8px">Взять масштаб из паспорта снимка (.txt)</button>
+        <div class="help" style="margin-top:6px">Прибор сохраняет рядом со снимком файл с тем же именем и расширением .txt, в котором записан точный размер пикселя. Это надёжнее, чем измерять шкалу по изображению.</div>
+        <button class="outline" id="autoCalBtn" style="margin-top:8px">Найти шкалу автоматически</button>
+        <div class="help" style="margin-top:6px">Подсказка: удерживайте <span class="kbd">Ctrl</span>, чтобы линия шла строго по горизонтали или вертикали.</div>
+        <div class="row" style="margin-top:10px">
+          <div style="flex:1">
+            <div class="lbl" style="margin-bottom:4px">длина шкалы</div>
+            <input type="number" id="calLen" class="miniinput" value="200" step="any">
+          </div>
+          <div style="flex:0 0 92px">
+            <div class="lbl" style="margin-bottom:4px">ед.</div>
+            <select id="calUnit"><option>мкм</option><option>нм</option><option>мм</option></select>
+          </div>
+        </div>
+        <div class="help" style="margin-top:8px" id="calInfo"></div>
+      </div>
+
+      <div class="group">
+        <div class="lbl">Экспорт</div>
+        <button class="act" id="expXlsx">Excel (.xlsx)</button>
+        <div class="row" style="margin-top:8px">
+          <button class="outline" id="expCsv">CSV</button>
+          <button class="outline" id="expJson">LabelMe JSON</button>
+        </div>
+        <button class="outline" id="expPng" style="margin-top:8px">Снимок с разметкой (PNG)</button>
+      </div>
+    </div>
+
+    <!-- ПАНЕЛЬ: ИЗМЕРЕНИЯ -->
+    <div class="panel" id="panel-meas">
+      <div class="group">
+        <div class="lbl">Фильтр по экв. диаметру</div>
+        <div class="row">
+          <input type="number" id="fMin" class="miniinput" placeholder="мин">
+          <span style="color:var(--ink-dim)">—</span>
+          <input type="number" id="fMax" class="miniinput" placeholder="макс">
+          <button class="outline" id="fApply" style="width:auto">OK</button>
+        </div>
+        <div class="help" id="filterInfo" style="margin-top:6px"></div>
+      </div>
+      <div id="tableWrap"></div>
+    </div>
+
+    <!-- ПАНЕЛЬ: СТАТИСТИКА -->
+    <div class="panel" id="panel-stats">
+      <div id="statsWrap"></div>
+      <div id="statsActions" style="display:none;margin-top:12px">
+        <button class="act" id="expStatXlsx">Отчёт по статистике (.xlsx)</button>
+      </div>
+    </div>
+
+    <!-- ПАНЕЛЬ: ПАКЕТНАЯ ОБРАБОТКА -->
+    <div class="panel" id="panel-batch">
+      <div class="group">
+        <div class="lbl">Пакетная обработка JSON</div>
+        <button class="act" id="bPick">Выбрать файлы .json</button>
+        <div class="help" style="margin-top:6px">Полигоны считаются без открытия снимков. Встроенные растры (imageData) отбрасываются.</div>
+      </div>
+
+      <div class="group" id="bCalGroup" style="display:none">
+        <div class="lbl">Калибровка пакета</div>
+        <div class="row">
+          <div style="flex:1">
+            <div class="lbl" style="margin-bottom:4px">длина шкалы</div>
+            <input type="number" id="bCalLen" class="miniinput" value="200" step="any">
+          </div>
+          <div style="flex:1">
+            <div class="lbl" style="margin-bottom:4px">в пикселях</div>
+            <input type="number" id="bCalPx" class="miniinput" value="403" step="any">
+          </div>
+          <div style="flex:0 0 78px">
+            <div class="lbl" style="margin-bottom:4px">ед.</div>
+            <select id="bCalUnit"><option>мкм</option><option>нм</option><option>мм</option></select>
+          </div>
+        </div>
+        <div class="help" style="margin-top:6px" id="bCalInfo"></div>
+        <div class="row" style="margin-top:8px">
+          <label class="help" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="bPerFile" style="width:auto"> разные увеличения в пакете
+          </label>
+        </div>
+        <div id="bPerFileWrap" style="display:none;margin-top:8px"></div>
+      </div>
+
+      <div class="group" id="bProgGroup" style="display:none">
+        <div class="lbl">Обработка</div>
+        <div style="height:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:5px;overflow:hidden">
+          <div id="bBar" style="height:100%;width:0%;background:var(--accent);transition:width .12s"></div>
+        </div>
+        <div class="help" style="margin-top:6px" id="bProgTxt"></div>
+      </div>
+
+      <div class="group" id="bResGroup" style="display:none">
+        <div class="lbl">Результат</div>
+        <div id="bSummary"></div>
+        <div id="bFiles" style="margin-top:10px"></div>
+        <button class="act" id="bExport" style="margin-top:12px">Сводная таблица (.xlsx)</button>
+        <button class="outline" id="bExportCsv" style="margin-top:8px">Сводная таблица (CSV)</button>
+        <button class="outline" id="bClear" style="margin-top:8px">Очистить пакет</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- модалка калибровки -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="mTitle">Калибровка масштаба</h3>
+    <p id="mDesc">Вы отметили отрезок на шкале. Укажите его реальную длину.</p>
+    <div class="fields">
+      <div><label>длина в пикселях</label><input type="number" id="mPx" class="miniinput" readonly></div>
+      <div><label>реальная длина</label><input type="number" id="mReal" class="miniinput" step="any"></div>
+      <div style="flex:0 0 70px"><label>ед.</label><select id="mUnit"><option>мкм</option><option>нм</option><option>мм</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="outline" id="mCancel">Отмена</button>
+      <button class="act" id="mOk">Применить</button>
+    </div>
+  </div>
+</div>
+
+<!-- модалка справки -->
+<div class="modal-bg" id="helpBg">
+  <div class="modal" style="width:380px">
+    <h3>Горячие клавиши</h3>
+    <div class="help" style="margin-top:10px">
+      <div><span>Выделение / правка</span><span class="kbd">V</span></div>
+      <div><span>Обвести частицу</span><span class="kbd">D</span></div>
+      <div><span>Измерить шкалу</span><span class="kbd">C</span></div>
+      <div><span>Замкнуть полигон</span><span class="kbd">Enter / 2× клик</span></div>
+      <div><span>Убрать последнюю точку</span><span class="kbd">Backspace</span></div>
+      <div><span>Отменить обводку</span><span class="kbd">Esc</span></div>
+      <div><span>Удалить выбранное</span><span class="kbd">Del</span></div>
+      <div><span>Прямая шкала (гор./верт.)</span><span class="kbd">Ctrl + тяни</span></div>
+      <div><span>Панорама (рука)</span><span class="kbd">Space + тяни / ср. кнопка</span></div>
+      <div><span>Зум</span><span class="kbd">колесо</span></div>
+      <div><span>Вписать в экран</span><span class="kbd">F</span></div>
+    </div>
+    <div class="actions" style="margin-top:18px"><button class="act" id="helpClose">Понятно</button></div>
+  </div>
+</div>
+
+<input type="file" id="fileImg" accept="image/*" hidden>
+<input type="file" id="fileJson" accept=".json,application/json" hidden>
+<input type="file" id="fileSidecar" accept=".txt" hidden>
+<input type="file" id="fileBatch" accept=".json,application/json" multiple hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   КАЛИБР — ручная морфометрия минеральных частиц / диатомей по SEM-снимкам.
+   Один автономный HTML-файл. Не требует установки Python и интернета.
+   Формулы измерений совпадают с эталонным пайплайном labelme + OpenCV.
+   ========================================================================= */
+
+/* ---------------------------- СОСТОЯНИЕ ---------------------------------- */
+const S = {
+  img: null,                 // HTMLImage/Canvas с растром
+  imgW: 0, imgH: 0,
+  imageName: 'image',
+  shapes: [],                // {id,label,points:[[x,y]...]} в координатах изображения (пиксели)
+  labels: [                  // палитра меток
+    {name:'partical', color:'#35d6c4'},
+    {name:'diatom',   color:'#e879c8'},
+  ],
+  curLabel: 'partical',
+  tool: 'select',            // select | draw | calibrate
+  scale: { umPerPx: null, unit: 'мкм' },  // null = не откалибровано
+  // вид (трансформ изображение→экран): screen = img*z + [ox,oy]
+  z: 1, ox: 0, oy: 0,
+  // черновики
+  draft: null,               // массив точек текущего рисуемого полигона
+  calPts: [],                // 2 точки калибровки
+  sel: null,                 // id выбранного полигона
+  hoverVtx: null,            // {shapeId, idx} наведённая вершина
+  dragVtx: null,
+  filter: { min: null, max: null },
+  sortKey: 'id', sortDir: 1,
+  nextId: 1,
+};
+const PALETTE = ['#35d6c4','#e879c8','#ffb347','#8ab4ff','#a0e85b','#ff8c69','#c792ea','#ffd166'];
+
+/* ---------------------------- DOM ---------------------------------------- */
+const $ = s => document.querySelector(s);
+const imgCanvas = $('#img'), overlay = $('#overlay');
+const ictx = imgCanvas.getContext('2d');
+const octx = overlay.getContext('2d');
+const stage = $('#stage');
+
+/* ---------------------------- УТИЛИТЫ ------------------------------------ */
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+function labelColor(name){const l=S.labels.find(l=>l.name===name);return l?l.color:'#9aa';}
+function trunc(p){return [Math.trunc(p[0]),Math.trunc(p[1])];}
+// привязка точки к горизонтали/вертикали относительно якоря (для Ctrl при калибровке)
+function snapAxis(anchor,pt){
+  const dx=Math.abs(pt[0]-anchor[0]),dy=Math.abs(pt[1]-anchor[1]);
+  return dx>=dy ? [pt[0],anchor[1]] : [anchor[0],pt[1]];
+}
+
+/* ---------------- ГЕОМЕТРИЯ ИЗМЕРЕНИЙ (сверена с cv2) -------------------- */
+function shoelaceArea(pts){let a=0;for(let i=0;i<pts.length;i++){const j=(i+1)%pts.length;a+=pts[i][0]*pts[j][1]-pts[j][0]*pts[i][1];}return Math.abs(a)/2;}
+function perimeter(pts){let p=0;for(let i=0;i<pts.length;i++){const j=(i+1)%pts.length;p+=Math.hypot(pts[i][0]-pts[j][0],pts[i][1]-pts[j][1]);}return p;}
+function convexHull(points){
+  const pts=points.map(p=>[p[0],p[1]]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  if(pts.length<3)return pts;
+  const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[];for(const p of pts){while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  const up=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>=2&&cross(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  lo.pop();up.pop();return lo.concat(up);
+}
+function feretMaxHull(hull){let md=0;for(let i=0;i<hull.length;i++)for(let j=i+1;j<hull.length;j++){const d=Math.hypot(hull[i][0]-hull[j][0],hull[i][1]-hull[j][1]);if(d>md)md=d;}return md;}
+function minAreaRect(hull){ // вращающиеся штангенциркули → мин. по площади прямоугольник
+  if(hull.length<2)return{w:0,h:0};
+  let best=Infinity,bw=0,bh=0;
+  for(let i=0;i<hull.length;i++){
+    const j=(i+1)%hull.length;
+    const ex=hull[j][0]-hull[i][0],ey=hull[j][1]-hull[i][1];
+    const len=Math.hypot(ex,ey);if(len<1e-9)continue;
+    const ux=ex/len,uy=ey/len,vx=-uy,vy=ux;
+    let minU=Infinity,maxU=-Infinity,minV=Infinity,maxV=-Infinity;
+    for(const p of hull){const pu=p[0]*ux+p[1]*uy,pv=p[0]*vx+p[1]*vy;
+      if(pu<minU)minU=pu;if(pu>maxU)maxU=pu;if(pv<minV)minV=pv;if(pv>maxV)maxV=pv;}
+    const w=maxU-minU,h=maxV-minV,area=w*h;
+    if(area<best){best=area;bw=w;bh=h;}
+  }
+  return{w:bw,h:bh};
+}
+/* Ферет-мин = наименьшая ширина опорной полосы по всем направлениям рёбер
+   выпуклой оболочки (определение ImageJ MinFeret). Раньше бралась меньшая
+   сторона прямоугольника минимальной ПЛОЩАДИ — на вырожденных полигонах
+   (коллинеарные вершины, равные площади) это давало неоднозначный результат. */
+function minCaliperWidth(hull){
+  if(hull.length<2)return 0;
+  let minW=Infinity;
+  for(let i=0;i<hull.length;i++){
+    const j=(i+1)%hull.length;
+    const ex=hull[j][0]-hull[i][0],ey=hull[j][1]-hull[i][1];
+    const len=Math.hypot(ex,ey);if(len<1e-9)continue;
+    const vx=-ey/len,vy=ex/len;
+    let mn=Infinity,mx=-Infinity;
+    for(const p of hull){const pv=p[0]*vx+p[1]*vy;if(pv<mn)mn=pv;if(pv>mx)mx=pv;}
+    const w=mx-mn;if(w<minW)minW=w;
+  }
+  return isFinite(minW)?minW:0;
+}
+function measure(pointsList, umPerPx){
+  const k = umPerPx || 1;            // если не откалибровано → пиксели
+  const pts = pointsList.map(trunc);  // cv2 приводит к int32
+  const areaPx = shoelaceArea(pts);
+  const area = areaPx*k*k;
+  const per = perimeter(pts)*k;
+  const eq = areaPx>0 ? Math.sqrt(4*area/Math.PI) : 0;
+  let fmax=0,fmin=0;
+  if(pts.length>=3){
+    const hull=convexHull(pts);
+    fmax=feretMaxHull(hull)*k;          // наибольшее расстояние по оболочке
+    fmin=minCaliperWidth(hull)*k;       // наименьшая ширина по всем направлениям
+  }
+  const ar = fmin>0?fmax/fmin:0;
+  const circ = per>0 ? 4*Math.PI*area/(per*per) : 0;
+  return {area,per,eq,fmax,fmin,ar,circ};
+}
+const r2=x=>Math.round(x*100)/100, r3=x=>Math.round(x*1000)/1000;
+
+/* ----------------------- ТРАНСФОРМ ВИДА ---------------------------------- */
+function resizeCanvases(){
+  const dpr=window.devicePixelRatio||1;
+  const w=stage.clientWidth,h=stage.clientHeight;
+  for(const c of [imgCanvas,overlay]){c.width=w*dpr;c.height=h*dpr;}
+  ictx.setTransform(dpr,0,0,dpr,0,0);
+  octx.setTransform(dpr,0,0,dpr,0,0);
+  render();
+}
+function imgToScreen(x,y){return [x*S.z+S.ox, y*S.z+S.oy];}
+function screenToImg(sx,sy){return [(sx-S.ox)/S.z, (sy-S.oy)/S.z];}
+function fitView(){
+  if(!S.img)return;
+  const w=stage.clientWidth,h=stage.clientHeight,pad=24;
+  S.z=Math.min((w-pad*2)/S.imgW,(h-pad*2)/S.imgH);
+  S.ox=(w-S.imgW*S.z)/2; S.oy=(h-S.imgH*S.z)/2;
+  render();
+}
+function zoomAt(sx,sy,factor){
+  const [ix,iy]=screenToImg(sx,sy);
+  S.z=Math.max(0.03,Math.min(40,S.z*factor));
+  S.ox=sx-ix*S.z; S.oy=sy-iy*S.z;
+  render();
+}
+
+/* ----------------------------- РЕНДЕР ------------------------------------ */
+function render(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  ictx.clearRect(0,0,w,h);
+  octx.clearRect(0,0,w,h);
+  if(!S.img){return;}
+  ictx.imageSmoothingEnabled = S.z < 3;
+  ictx.drawImage(S.img, S.ox, S.oy, S.imgW*S.z, S.imgH*S.z);
+
+  const visible = filteredShapes();
+  const visIds = new Set(visible.map(s=>s.id));
+
+  for(const sh of S.shapes){
+    if(!visIds.has(sh.id) && sh.id!==S.sel) continue;
+    drawPolygon(sh, sh.id===S.sel);
+  }
+  if(S.draft && S.draft.length){
+    octx.save();
+    octx.strokeStyle=labelColor(S.curLabel); octx.lineWidth=1.6;
+    octx.beginPath();
+    S.draft.forEach((p,i)=>{const[sx,sy]=imgToScreen(p[0],p[1]);i?octx.lineTo(sx,sy):octx.moveTo(sx,sy);});
+    if(S.mouseImg){const[mx,my]=imgToScreen(S.mouseImg[0],S.mouseImg[1]);octx.lineTo(mx,my);}
+    octx.stroke();
+    for(const p of S.draft){const[sx,sy]=imgToScreen(p[0],p[1]);
+      octx.fillStyle=labelColor(S.curLabel);octx.beginPath();octx.arc(sx,sy,3.5,0,7);octx.fill();}
+    octx.restore();
+  }
+  if(S.tool==='calibrate' || S.calPts.length){
+    octx.save();
+    octx.strokeStyle='#ffb347';octx.lineWidth=2;octx.setLineDash([]);
+    if(S.calPts.length>=1){
+      const a=imgToScreen(...S.calPts[0]);
+      let endImg = S.calPts.length>=2 ? S.calPts[1] : (S.mouseImg||S.calPts[0]);
+      if(S.calPts.length<2 && S.modCtrl && S.mouseImg) endImg=snapAxis(S.calPts[0],S.mouseImg);
+      const b=imgToScreen(endImg[0],endImg[1]);
+      octx.beginPath();octx.moveTo(a[0],a[1]);octx.lineTo(b[0],b[1]);octx.stroke();
+      if(S.calPts.length<2 && S.modCtrl){
+        const horiz=Math.abs(endImg[0]-S.calPts[0][0])>=Math.abs(endImg[1]-S.calPts[0][1]);
+        octx.fillStyle='#ffb347';octx.font='11px ui-monospace,monospace';
+        octx.fillText(horiz?'⇄ горизонталь':'⇅ вертикаль',(a[0]+b[0])/2+8,(a[1]+b[1])/2-8);
+      }
+      for(const pt of [a,b]){octx.fillStyle='#ffb347';octx.beginPath();octx.arc(pt[0],pt[1],4,0,7);octx.fill();
+        octx.strokeStyle='#3a2400';octx.lineWidth=1;octx.stroke();}
+      const ang=Math.atan2(b[1]-a[1],b[0]-a[0])+Math.PI/2,t=7;
+      for(const pt of [a,b]){octx.strokeStyle='#ffb347';octx.lineWidth=2;octx.beginPath();
+        octx.moveTo(pt[0]-Math.cos(ang)*t,pt[1]-Math.sin(ang)*t);
+        octx.lineTo(pt[0]+Math.cos(ang)*t,pt[1]+Math.sin(ang)*t);octx.stroke();}
+    }
+    octx.restore();
+  }
+}
+function drawPolygon(sh, selected){
+  const col=labelColor(sh.label);
+  octx.save();
+  octx.beginPath();
+  sh.points.forEach((p,i)=>{const[sx,sy]=imgToScreen(p[0],p[1]);i?octx.lineTo(sx,sy):octx.moveTo(sx,sy);});
+  octx.closePath();
+  octx.fillStyle=col+(selected?'33':'1f');
+  octx.fill();
+  octx.lineWidth=selected?2.2:1.3;
+  octx.strokeStyle=col;
+  octx.stroke();
+  if(selected){
+    for(let i=0;i<sh.points.length;i++){
+      const[sx,sy]=imgToScreen(sh.points[i][0],sh.points[i][1]);
+      const hov=S.hoverVtx&&S.hoverVtx.shapeId===sh.id&&S.hoverVtx.idx===i;
+      octx.fillStyle=hov?'#fff':col;octx.beginPath();octx.arc(sx,sy,hov?5:3.5,0,7);octx.fill();
+      octx.strokeStyle='#0d1014';octx.lineWidth=1;octx.stroke();
+    }
+  }
+  octx.restore();
+}
+
+/* --------------------- ВЫБОРКА / ФИЛЬТР ---------------------------------- */
+function filteredShapes(){
+  if(S.filter.min==null && S.filter.max==null) return S.shapes;
+  return S.shapes.filter(sh=>{
+    const m=measure(sh.points,S.scale.umPerPx);
+    if(S.filter.min!=null && m.eq<S.filter.min) return false;
+    if(S.filter.max!=null && m.eq>S.filter.max) return false;
+    return true;
+  });
+}
+function pointInPoly(x,y,pts){
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+    if(((yi>y)!=(yj>y)) && (x<(xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function hitVertex(ix,iy){
+  if(S.sel==null)return null;
+  const sh=S.shapes.find(s=>s.id===S.sel);if(!sh)return null;
+  const tol=8/S.z;
+  for(let i=0;i<sh.points.length;i++){
+    if(Math.hypot(sh.points[i][0]-ix,sh.points[i][1]-iy)<tol) return {shapeId:sh.id,idx:i};
+  }
+  return null;
+}
+function hitShape(ix,iy){
+  for(let i=S.shapes.length-1;i>=0;i--){
+    if(pointInPoly(ix,iy,S.shapes[i].points)) return S.shapes[i].id;
+  }
+  return null;
+}
+
+/* ----------------------- ОБРАБОТКА КАНВАСА ------------------------------- */
+let panning=false,panStart=null;
+function evScreen(e){const r=overlay.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
+
+overlay.addEventListener('mousedown',e=>{
+  if(!S.img)return;
+  const [sx,sy]=evScreen(e);
+  const [ix,iy]=screenToImg(sx,sy);
+  if(e.button===1 || e.button===2 || S.spaceDown){
+    panning=true;panStart=[sx,sy,S.ox,S.oy];stage.classList.add('grabbing');e.preventDefault();return;
+  }
+  if(S.tool==='draw'){
+    if(!S.draft) S.draft=[];
+    if(S.draft.length>=3){const f=imgToScreen(...S.draft[0]);if(Math.hypot(f[0]-sx,f[1]-sy)<10){finishDraft();return;}}
+    S.draft.push([ix,iy]);render();return;
+  }
+  if(S.tool==='calibrate'){
+    if(S.calPts.length>=2)S.calPts=[];
+    let np=[ix,iy];
+    if(S.calPts.length===1 && (e.ctrlKey||e.metaKey)) np=snapAxis(S.calPts[0],np);
+    S.calPts.push(np);
+    if(S.calPts.length===2) openCalModal();
+    render();return;
+  }
+  const v=hitVertex(ix,iy);
+  if(v){pushUndo();S.dragVtx=v;return;}
+  const id=hitShape(ix,iy);
+  setSelected(id);
+});
+overlay.addEventListener('mousemove',e=>{
+  if(!S.img)return;
+  const [sx,sy]=evScreen(e);
+  S.mouseImg=screenToImg(sx,sy);
+  S.modCtrl=e.ctrlKey||e.metaKey;
+  if(panning){S.ox=panStart[2]+(sx-panStart[0]);S.oy=panStart[3]+(sy-panStart[1]);render();return;}
+  if(S.dragVtx){
+    const sh=S.shapes.find(s=>s.id===S.dragVtx.shapeId);
+    sh.points[S.dragVtx.idx]=[S.mouseImg[0],S.mouseImg[1]];
+    render();return;
+  }
+  if(S.tool==='select'){
+    const v=hitVertex(...S.mouseImg);
+    if((v&&!S.hoverVtx)||(!v&&S.hoverVtx)||(v&&S.hoverVtx&&v.idx!==S.hoverVtx.idx)){S.hoverVtx=v;render();}
+  }
+  if(S.tool==='draw'||S.tool==='calibrate')render();
+});
+window.addEventListener('mouseup',()=>{
+  if(panning){panning=false;stage.classList.remove('grabbing');}
+  if(S.dragVtx){S.dragVtx=null;refreshAfterChange(true);}
+});
+overlay.addEventListener('dblclick',()=>{if(S.tool==='draw')finishDraft();});
+overlay.addEventListener('contextmenu',e=>e.preventDefault());
+overlay.addEventListener('wheel',e=>{e.preventDefault();const[sx,sy]=evScreen(e);zoomAt(sx,sy,e.deltaY<0?1.12:1/1.12);},{passive:false});
+
+function finishDraft(){
+  if(S.draft && S.draft.length>=3){
+    pushUndo();
+    const sh={id:S.nextId++,label:S.curLabel,points:S.draft.map(p=>[p[0],p[1]])};
+    S.shapes.push(sh);
+    setSelected(sh.id);
+    refreshAfterChange(true);
+  }
+  S.draft=null;render();
+}
+
+/* ----------------------- ВЫБОР / УДАЛЕНИЕ -------------------------------- */
+function setSelected(id){S.sel=id;S.hoverVtx=null;render();updateTable();updateLabelCounts();}
+function deleteSelected(){
+  if(S.sel==null)return;
+  pushUndo();
+  S.shapes=S.shapes.filter(s=>s.id!==S.sel);
+  S.sel=null;refreshAfterChange(true);
+}
+
+/* ----------------------- КЛАВИАТУРА -------------------------------------- */
+window.addEventListener('keydown',e=>{
+  // Ctrl/⌘ — фиксация прямой при калибровке (работает даже в полях)
+  if((e.key==='Control'||e.key==='Meta') && S.tool==='calibrate' && S.calPts.length===1){S.modCtrl=true;render();}
+  const inField=e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.isContentEditable;
+  if(e.code==='Space'){
+    if(inField)return;            // пробел в поле ввода — обычный ввод
+    if(!S.spaceDown){S.spaceDown=true;stage.classList.add('pan');if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}
+    e.preventDefault();return;    // не даём пробелу «нажать» кнопку и прокрутить страницу
+  }
+  if(inField)return;
+  const k=e.key.toLowerCase();
+  if(k==='v')setTool('select');
+  else if(k==='d')setTool('draw');
+  else if(k==='c')setTool('calibrate');
+  else if(k==='f')fitView();
+  else if(e.key==='Delete'||e.key==='Backspace'){
+    if(S.tool==='draw'&&S.draft&&S.draft.length){S.draft.pop();render();}
+    else deleteSelected();
+  }
+  else if(e.key==='Enter'&&S.tool==='draw')finishDraft();
+  else if(e.key==='Escape'){S.draft=null;S.calPts=[];render();}
+});
+window.addEventListener('keyup',e=>{
+  if(e.code==='Space'){S.spaceDown=false;stage.classList.remove('pan','grabbing');panning=false;}
+  if((e.key==='Control'||e.key==='Meta')){S.modCtrl=false;if(S.tool==='calibrate')render();}
+});
+
+/* ----------------------- ИНСТРУМЕНТЫ ------------------------------------- */
+function setTool(t){
+  S.tool=t;S.draft=null;S.calPts=[];
+  document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
+  overlay.style.cursor = t==='select'?'default':'crosshair';
+  render();
+}
+document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
+$('#btnDelete').onclick=deleteSelected;
+$('#calBtn').onclick=()=>setTool('calibrate');
+$('#zIn').onclick=()=>zoomAt(stage.clientWidth/2,stage.clientHeight/2,1.25);
+$('#zOut').onclick=()=>zoomAt(stage.clientWidth/2,stage.clientHeight/2,1/1.25);
+$('#zFit').onclick=fitView;
+
+/* ----------------------- ЗАГРУЗКА РАСТРА ---------------------------------- */
+function setImage(imgEl,name){
+  S.img=imgEl;S.imgW=imgEl.naturalWidth||imgEl.width;S.imgH=imgEl.naturalHeight||imgEl.height;
+  if(name)S.imageName=name.replace(/\.[^.]+$/,'');
+  $('#hint').style.display='none';
+  fitView();warnVolatile();
+}
+function loadImageFile(file){
+  const url=URL.createObjectURL(file);const im=new Image();
+  im.onload=()=>{setImage(im,file.name);URL.revokeObjectURL(url);toast('Снимок загружен: '+S.imgW+'×'+S.imgH+' px');};
+  im.src=url;
+}
+$('#btnOpenImg').onclick=()=>$('#fileImg').click();
+$('#fileImg').onchange=e=>{if(e.target.files[0])loadImageFile(e.target.files[0]);e.target.value='';};
+
+/* ----------------------- ЗАГРУЗКА ПРОЕКТА LabelMe ------------------------- */
+$('#btnOpenJson').onclick=()=>$('#fileJson').click();
+$('#fileJson').onchange=e=>{const f=e.target.files[0];if(f)loadJsonFile(f);e.target.value='';};
+function loadJsonFile(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      const apply=()=>{
+        S.shapes=[]; S.nextId=1;
+        const seen=new Set(S.labels.map(l=>l.name));
+        (d.shapes||[]).forEach(sh=>{
+          if(sh.shape_type && sh.shape_type!=='polygon') return;
+          if(!seen.has(sh.label)){seen.add(sh.label);S.labels.push({name:sh.label,color:PALETTE[S.labels.length%PALETTE.length]});}
+          S.shapes.push({id:S.nextId++,label:sh.label,points:sh.points.map(p=>[p[0],p[1]])});
+        });
+        S.imageName=(d.imagePath||file.name).replace(/\.[^.]+$/,'');
+        renderLabels();refreshAfterChange(true);
+        toast('Проект загружен: полигонов '+S.shapes.length);
+      };
+      if(d.imageData){
+        const im=new Image();
+        im.onload=()=>{setImage(im,d.imagePath||file.name);apply();};
+        im.onerror=()=>{apply();toast('Полигоны загружены, но встроенный снимок не открылся — добавьте его вручную.');};
+        im.src='data:image/*;base64,'+d.imageData;
+      } else { apply(); if(!S.img) toast('Снимок не вложен в JSON — откройте его кнопкой «Снимок».'); }
+    }catch(err){toast('Не удалось прочитать JSON: '+err.message);}
+  };
+  r.readAsText(file);
+}
+
+/* ----------------------- DRAG & DROP ------------------------------------- */
+['dragover','dragenter'].forEach(ev=>stage.addEventListener(ev,e=>{e.preventDefault();stage.classList.add('dragover');}));
+stage.addEventListener('dragleave',e=>{if(e.relatedTarget&&stage.contains(e.relatedTarget))return;stage.classList.remove('dragover');});
+stage.addEventListener('drop',e=>{
+  e.preventDefault();stage.classList.remove('dragover');
+  const f=e.dataTransfer.files[0];if(!f)return;
+  if(/\.json$/i.test(f.name))loadJsonFile(f);else if(/^image\//.test(f.type))loadImageFile(f);
+});
+
+/* ----------------------- КАЛИБРОВКА -------------------------------------- */
+function openCalModal(){
+  const px=Math.hypot(S.calPts[1][0]-S.calPts[0][0],S.calPts[1][1]-S.calPts[0][1]);
+  $('#mPx').value=px.toFixed(1);
+  $('#mReal').value=$('#calLen').value||'';
+  $('#mUnit').value=$('#calUnit').value;
+  $('#modalBg').classList.add('show');
+  setTimeout(()=>$('#mReal').focus(),50);
+  S._calPx=px;
+}
+$('#mCancel').onclick=()=>{$('#modalBg').classList.remove('show');S.calPts=[];render();};
+$('#mOk').onclick=()=>{
+  const real=parseFloat($('#mReal').value),unit=$('#mUnit').value;
+  if(!(real>0)){toast('Введите реальную длину больше нуля');return;}
+  applyScale(real/S._calPx, unit, real);
+  $('#calLen').value=real;$('#calUnit').value=unit;
+  $('#modalBg').classList.remove('show');S.calPts=[];setTool('select');
+};
+function applyScale(umPerPx,unit,realLen,src){
+  S.scale.umPerPx=umPerPx;S.scale.unit=unit;
+  /* Источник масштаба записывается в выгрузку: по нему потом видно, чем
+     калибровались размеры — промером шкалы или паспортом снимка. */
+  S.scale.src=src||S.scale.src||'промер шкалы вручную';
+  const chip=$('#chipScale');chip.classList.remove('warn');chip.classList.add('ok');
+  chip.innerHTML='масштаб: <b>'+r3(umPerPx)+' '+unit+'/px</b>';
+  $('#calInfo').innerHTML='1 пиксель = <b>'+r3(umPerPx)+' '+unit+'</b>'+(realLen?'<br>('+realLen+' '+unit+' = '+r2(realLen/umPerPx)+' px)':'');
+  refreshAfterChange(true);
+}
+/* ---------------- масштаб из паспорта снимка (.txt) ------------------------
+   РЭМ Hitachi TM4000 сохраняет рядом с каждым снимком одноимённый файл .txt
+   с полным паспортом кадра, где есть поле PixelSize — размер пикселя в
+   нанометрах, посчитанный самим прибором. Это точнее, чем измерять шкалу
+   мышью: у шкалы 200 мкм длина 403 пикселя, ошибка попадания в ±2 пикселя
+   уже даёт 0.5 % по длине и 1 % по площади, а промах на всю засечку — куда
+   больше. Файл в кодировке UTF-16 с BOM, поэтому читается как UTF-16.       */
+$('#sidecarBtn').onclick=()=>$('#fileSidecar').click();
+$('#fileSidecar').onchange=async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value='';
+  if(!f) return;
+  let txt='';
+  try{
+    const buf=await f.arrayBuffer(), u8=new Uint8Array(buf);
+    /* UTF-16LE (BOM FF FE), UTF-16BE (FE FF) или обычный однобайтовый текст */
+    if(u8[0]===0xFF&&u8[1]===0xFE)      txt=new TextDecoder('utf-16le').decode(buf);
+    else if(u8[0]===0xFE&&u8[1]===0xFF) txt=new TextDecoder('utf-16be').decode(buf);
+    else                                txt=new TextDecoder('utf-8').decode(buf);
+  }catch(err){ toast('Не удалось прочитать файл: '+err.message); return; }
+
+  const kv={};
+  for(const line of txt.split(/\r?\n/)){
+    const i=line.indexOf('=');
+    if(i>0) kv[line.slice(0,i).trim()]=line.slice(i+1).trim();
+  }
+  const ps=parseFloat(kv['PixelSize']);            // нанометры на пиксель
+  if(!(ps>0)){ toast('В файле нет поля PixelSize — это не паспорт снимка Hitachi'); return; }
+
+  /* Паспорт относится к кадру своего размера. Если открытый снимок обрезан
+     или масштабирован, размер пикселя надо пересчитать, иначе все размеры
+     уедут молча. */
+  let scale=1, note='';
+  const ds=(kv['DataSize']||'').split(/[xX]/);
+  const dw=parseInt(ds[0],10), dh=parseInt(ds[1],10);
+  if(dw>0&&S.img&&S.img.naturalWidth&&dw!==S.img.naturalWidth){
+    scale=dw/S.img.naturalWidth;
+    note=' Внимание: паспорт для кадра '+dw+'×'+dh+', а открыт снимок '+
+         S.img.naturalWidth+'×'+S.img.naturalHeight+' — размер пикселя пересчитан в '+
+         r3(scale)+' раза.';
+  }
+  const um=ps/1000*scale;
+
+  /* Если масштаб уже был задан вручную, покажем расхождение: молча
+     переопределять измерения нельзя. */
+  const prev=S.scale.umPerPx;
+  applyScale(um,'мкм',null,'паспорт снимка (PixelSize)'+(kv['Magnification']?', ×'+kv['Magnification']:''));
+  $('#calUnit').value='мкм';
+  let msg='Масштаб из паспорта: '+r3(um)+' мкм/пиксель';
+  if(kv['Magnification']) msg+=' (×'+kv['Magnification']+')';
+  msg+='.'+note;
+  if(prev>0&&Math.abs(prev-um)/um>0.005)
+    msg+=' Прежнее значение '+r3(prev)+' отличалось на '+
+         (100*Math.abs(prev-um)/um).toFixed(1)+' % по длине и '+
+         (100*Math.abs(prev*prev-um*um)/(um*um)).toFixed(1)+' % по площади.';
+  toast(msg);
+  const info=$('#calInfo');
+  if(info) info.innerHTML+='<br><span style="color:var(--accent)">источник: паспорт снимка'+
+    (kv['Magnification']?' (×'+kv['Magnification']+')':'')+'</span>';
+};
+
+$('#autoCalBtn').onclick=()=>{
+  if(!S.img){toast('Сначала откройте снимок');return;}
+  const px=detectScaleBar();
+  if(!px){toast('Шкалу найти не удалось — отметьте её вручную кнопкой «Шкала»');return;}
+  const real=parseFloat($('#calLen').value);
+  if(!(real>0)){toast('Шкала найдена ('+px+' px). Укажите её длину в поле слева и нажмите снова.');return;}
+  applyScale(real/px, $('#calUnit').value, real);
+  toast('Шкала найдена: '+px+' px → '+real+' '+$('#calUnit').value);
+};
+function detectScaleBar(){
+  const tmp=document.createElement('canvas');tmp.width=S.imgW;tmp.height=S.imgH;
+  const t=tmp.getContext('2d');t.drawImage(S.img,0,0);
+  const y0=Math.floor(S.imgH*0.90);
+  const data=t.getImageData(0,y0,S.imgW,S.imgH-y0).data;
+  const W=S.imgW,H=S.imgH-y0;
+  let best=0;
+  for(let y=0;y<H;y++){
+    let run=0;
+    for(let x=0;x<W;x++){
+      const i=(y*W+x)*4;const lum=(data[i]+data[i+1]+data[i+2])/3;
+      if(lum>200){run++;if(run>best)best=run;}else run=0;
+    }
+  }
+  return best>20?best:null;
+}
+
+/* ----------------------- ТАБЛИЦА ИЗМЕРЕНИЙ ------------------------------- */
+const COLS=[
+  {k:'id',  t:'#'},
+  {k:'lbl', t:'метка'},
+  {k:'area',t:'площ.'},
+  {k:'eq',  t:'D_экв'},
+  {k:'fmax',t:'Феретmax'},
+  {k:'fmin',t:'Феретmin'},
+  {k:'ar',  t:'AR'},
+  {k:'circ',t:'округл.'},
+];
+function rowData(sh){const m=measure(sh.points,S.scale.umPerPx);return{id:sh.id,lbl:sh.label,...m,_sh:sh};}
+function updateTable(){
+  const wrap=$('#tableWrap');
+  const list=filteredShapes();
+  if(!list.length){wrap.innerHTML='<div class="empty">Нет частиц для показа.<br>Обведите частицу инструментом «Обвести» (D) или откройте проект LabelMe.</div>';updateChips();return;}
+  let rows=list.map(rowData);
+  const k=S.sortKey;
+  rows.sort((a,b)=>{const va=a[k],vb=b[k];return (va>vb?1:va<vb?-1:0)*S.sortDir;});
+  const u=S.scale.umPerPx?S.scale.unit:'px';
+  let html=`<div class="help" style="margin:-4px 0 8px">площадь — ${u}²; диаметры — ${u}; AR — отношение сторон; округлость 0…1</div>`;
+  html+='<table class="mtable"><thead><tr>';
+  COLS.forEach(c=>{const arr=S.sortKey===c.k?(S.sortDir>0?' ▲':' ▼'):'';html+=`<th data-k="${c.k}">${c.t}${arr}</th>`;});
+  html+='</tr></thead><tbody>';
+  for(const r of rows){
+    const sel=r.id===S.sel?' class="sel"':'';
+    html+=`<tr data-id="${r.id}"${sel}>`
+      +`<td>${r.id}</td>`
+      +`<td><span class="ldot" style="background:${labelColor(r.lbl)}"></span>${r.lbl}</td>`
+      +`<td>${fmt(r.area)}</td><td>${fmt(r.eq)}</td><td>${fmt(r.fmax)}</td>`
+      +`<td>${fmt(r.fmin)}</td><td>${r.ar.toFixed(2)}</td><td>${r.circ.toFixed(3)}</td></tr>`;
+  }
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+  wrap.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{
+    const kk=th.dataset.k;if(S.sortKey===kk)S.sortDir*=-1;else{S.sortKey=kk;S.sortDir=1;}updateTable();
+  });
+  wrap.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>{
+    const id=+tr.dataset.id;setSelected(id);
+    const sh=S.shapes.find(s=>s.id===id);if(sh){const c=sh.points.reduce((a,p)=>[a[0]+p[0],a[1]+p[1]],[0,0]).map(v=>v/sh.points.length);
+      S.ox=stage.clientWidth/2-c[0]*S.z;S.oy=stage.clientHeight/2-c[1]*S.z;render();}
+  });
+  updateChips();
+}
+function fmt(v){return v>=100?v.toFixed(1):v.toFixed(2);}
+
+/* ----------------------- СТАТИСТИКА + ГИСТОГРАММА ------------------------ */
+function median(arr){if(!arr.length)return 0;const s=[...arr].sort((a,b)=>a-b);const m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function updateStats(){
+  const wrap=$('#statsWrap'),list=filteredShapes();
+  if(!list.length){
+    wrap.innerHTML='<div class="empty">Пока нет данных для статистики.<br>Обведите частицы или откройте проект.</div>';
+    $('#statsActions').style.display='none';return;
+  }
+  const u=S.scale.umPerPx?S.scale.unit:'px';
+  // один проход измерений → кэш на каждую фигуру
+  const data=list.map(sh=>({label:sh.label,m:measure(sh.points,S.scale.umPerPx)}));
+  const byLabel={};
+  for(const d of data)(byLabel[d.label]=byLabel[d.label]||[]).push(d.m);
+  let html='';
+  for(const lab of Object.keys(byLabel)){
+    const ms=byLabel[lab],eqs=ms.map(m=>m.eq),areas=ms.map(m=>m.area);
+    const mean=eqs.reduce((a,b)=>a+b,0)/eqs.length;
+    html+=`<div class="statcard"><h4><span class="dot" style="background:${labelColor(lab)}"></span>${lab} · ${ms.length} шт.</h4>`
+      +stat('D_экв средн.',mean.toFixed(2)+' '+u)
+      +stat('D_экв медиана',median(eqs).toFixed(2)+' '+u)
+      +stat('D_экв диапазон',Math.min(...eqs).toFixed(2)+' – '+Math.max(...eqs).toFixed(2)+' '+u)
+      +stat('сумм. площадь',areas.reduce((a,b)=>a+b,0).toFixed(1)+' '+u+'²')
+      +`</div>`;
+  }
+  wrap.innerHTML=html;
+  $('#statsActions').style.display='block';
+}
+function stat(k,v){return `<div class="stat"><span class="k">${k}</span><span class="v">${v}</span></div>`;}
+// отчёт по статистике (xlsx): Сводка + Формулы
+$('#expStatXlsx').onclick=()=>{
+  if(!filteredShapes().length){toast('Нет данных');return;}
+  const sum=computeSummary(),leg=formulaLegend(sum.u);
+  const summary={name:'Сводка',headers:statHeaders(sum.u),rows:sum.rows,
+    comments:{2:'Среднее арифметическое D_экв',3:'Медиана D_экв',4:'Выборочное СКО (σ, n−1)'}};
+  const formulas={name:'Формулы',headers:['Величина','Обозн.','Формула','Пояснение'],rows:leg.rows};
+  download(new Blob([buildXlsx([summary,formulas])],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
+    S.imageName+'_статистика.xlsx');
+  toast('Отчёт по статистике сохранён');
+};
+
+/* ----------------------- МЕТКИ ------------------------------------------- */
+function renderLabels(){
+  const box=$('#labelList');box.innerHTML='';
+  S.labels.forEach(l=>{
+    const counts=S.shapes.filter(s=>s.label===l.name).length;
+    const div=document.createElement('div');
+    div.className='labelchip'+(l.name===S.curLabel?' sel':'');
+    div.innerHTML=`<span class="dot" style="background:${l.color}"></span>`
+      +`<span class="nm">${l.name}</span><span class="cnt">${counts}</span>`
+      +`<input type="color" value="${l.color}" title="цвет">`
+      +`<span class="x" title="убрать метку">×</span>`;
+    div.querySelector('.nm').onclick=()=>{S.curLabel=l.name;renderLabels();};
+    div.querySelector('.dot').onclick=()=>{S.curLabel=l.name;renderLabels();};
+    div.querySelector('input').oninput=e=>{l.color=e.target.value;render();updateTable();updateStats();};
+    div.querySelector('.x').onclick=e=>{e.stopPropagation();
+      if(S.shapes.some(s=>s.label===l.name)){toast('Сначала удалите частицы с этой меткой');return;}
+      S.labels=S.labels.filter(x=>x!==l);if(S.curLabel===l.name)S.curLabel=S.labels[0]?.name||'';renderLabels();};
+    box.appendChild(div);
+  });
+}
+function updateLabelCounts(){renderLabels();}
+$('#addLabel').onclick=()=>{
+  const v=$('#newLabel').value.trim();if(!v)return;
+  if(S.labels.some(l=>l.name===v)){toast('Такая метка уже есть');return;}
+  S.labels.push({name:v,color:PALETTE[S.labels.length%PALETTE.length]});
+  S.curLabel=v;$('#newLabel').value='';renderLabels();
+};
+$('#newLabel').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addLabel').click();});
+
+/* ----------------------- ФИЛЬТР ------------------------------------------ */
+$('#fApply').onclick=()=>{
+  const mn=parseFloat($('#fMin').value),mx=parseFloat($('#fMax').value);
+  S.filter.min=isFinite(mn)?mn:null;S.filter.max=isFinite(mx)?mx:null;
+  const u=S.scale.umPerPx?S.scale.unit:'px';
+  $('#filterInfo').textContent=(S.filter.min!=null||S.filter.max!=null)
+    ? `показаны частицы D_экв ${S.filter.min??'0'}…${S.filter.max??'∞'} ${u}` : 'фильтр выключен';
+  refreshAfterChange(true);
+};
+
+/* ----------------------- ОБЩЕЕ ОБНОВЛЕНИЕ -------------------------------- */
+function updateChips(){
+  $('#chipCount').innerHTML='частиц: <b>'+filteredShapes().length+(S.filter.min!=null||S.filter.max!=null?' / '+S.shapes.length:'')+'</b>';
+}
+function refreshAfterChange(full){
+  render();updateTable();updateChips();
+  if(full){updateStats();renderLabels();}
+}
+
+/* ========================== ЭКСПОРТ ====================================== */
+function tableMatrix(){
+  const u=S.scale.umPerPx?S.scale.unit:'px';
+  const head=['ID','Метка',`Площадь (${u}^2)`,`Периметр (${u})`,`D_экв (${u})`,
+              `Ферет_макс (${u})`,`Ферет_мин (${u})`,'Соотн. сторон','Округлость'];
+  const rows=filteredShapes().map(sh=>{const m=measure(sh.points,S.scale.umPerPx);
+    return [sh.id,sh.label,r3(m.area),r3(m.per),r3(m.eq),r3(m.fmax),r3(m.fmin),
+            Math.round(m.ar*10000)/10000,Math.round(m.circ*10000)/10000];});
+  return {head,rows,unit:u};
+}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+
+$('#expCsv').onclick=()=>{
+  if(!filteredShapes().length){toast('Нет данных для экспорта');return;}
+  const {head,rows}=tableMatrix();
+  const esc=v=>{v=String(v).replace(/\./g,',');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const sep=';';
+  const lines=[head.map(esc).join(sep),...rows.map(r=>r.map(esc).join(sep))];
+  const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  download(blob,S.imageName+'_измерения.csv');toast('CSV сохранён');
+};
+
+$('#expJson').onclick=()=>{
+  if(!S.shapes.length){toast('Нет полигонов');return;}
+  const obj={version:'5.4.1',flags:{},
+    shapes:S.shapes.map(s=>({label:s.label,points:s.points.map(p=>[p[0],p[1]]),
+      group_id:null,description:'',shape_type:'polygon',flags:{}})),
+    imagePath:S.imageName+'.jpg',imageData:null,imageHeight:S.imgH,imageWidth:S.imgW};
+  download(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),S.imageName+'.json');
+  toast('LabelMe JSON сохранён');
+};
+
+$('#expPng').onclick=()=>{
+  if(!S.img){toast('Нет снимка');return;}
+  const c=document.createElement('canvas');c.width=S.imgW;c.height=S.imgH;const x=c.getContext('2d');
+  x.drawImage(S.img,0,0);
+  for(const sh of filteredShapes()){
+    const col=labelColor(sh.label);x.beginPath();
+    sh.points.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();
+    x.fillStyle=col+'33';x.fill();x.strokeStyle=col;x.lineWidth=Math.max(1.5,S.imgW/700);x.stroke();
+  }
+  c.toBlob(b=>{download(b,S.imageName+'_разметка.png');toast('PNG сохранён');});
+};
+
+/* --- XLSX (автономный, без библиотек; несколько листов + примечания) --- */
+function crc32(bytes){let c,crc=0xFFFFFFFF;const t=crc32.t||(crc32.t=(()=>{const a=[];for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;a[n]=c>>>0;}return a;})());for(let i=0;i<bytes.length;i++)crc=t[(crc^bytes[i])&0xFF]^(crc>>>8);return(crc^0xFFFFFFFF)>>>0;}
+// sheets: [{name, headers:[...], rows:[[...]], comments?:{colIndex:text}}]  примечания вешаются на ячейки строки заголовка
+function buildXlsx(sheets){
+  const enc=new TextEncoder();
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const colName=n=>{let s='';n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;};
+  const files=[],overrides=[],wbSheets=[],wbRels=[];let hasVml=false;
+  sheets.forEach((sh,i)=>{
+    const n=i+1,hasC=sh.comments&&Object.keys(sh.comments).length;
+    let s='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetData>';
+    [sh.headers,...sh.rows].forEach((row,ri)=>{s+=`<row r="${ri+1}">`;row.forEach((cell,ci)=>{const ref=colName(ci)+(ri+1);
+      if(cell&&typeof cell==='object'&&cell.f!==undefined)s+=`<c r="${ref}"><f>${esc(cell.f)}</f><v>${isFinite(cell.v)?cell.v:0}</v></c>`;
+      else if(typeof cell==='number'&&isFinite(cell))s+=`<c r="${ref}"><v>${cell}</v></c>`;
+      else s+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(cell)}</t></is></c>`;});s+='</row>';});
+    s+='</sheetData>'+(hasC?'<legacyDrawing r:id="rIdVml"/>':'')+'</worksheet>';
+    files.push(['xl/worksheets/sheet'+n+'.xml',s]);
+    overrides.push(`<Override PartName="/xl/worksheets/sheet${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`);
+    wbSheets.push(`<sheet name="${esc(sh.name).slice(0,31)}" sheetId="${n}" r:id="rId${n}"/>`);
+    wbRels.push(`<Relationship Id="rId${n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${n}.xml"/>`);
+    if(hasC){
+      hasVml=true;const cols=Object.keys(sh.comments).map(Number);
+      let cx='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><authors><author>КАЛИБР</author></authors><commentList>';
+      cols.forEach(col=>{cx+=`<comment ref="${colName(col)}1" authorId="0"><text><r><t xml:space="preserve">${esc(sh.comments[col])}</t></r></text></comment>`;});
+      cx+='</commentList></comments>';
+      files.push([`xl/comments${n}.xml`,cx]);
+      overrides.push(`<Override PartName="/xl/comments${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.comments+xml"/>`);
+      let vml='<xml xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><o:shapelayout v:ext="edit"><o:idmap v:ext="edit" data="'+n+'"/></o:shapelayout><v:shapetype id="_x0000_t202" coordsize="21600,21600" o:spt="202" path="m,l,21600r21600,l21600,xe"><v:stroke joinstyle="miter"/><v:path gradientshapeok="t" o:connecttype="rect"/></v:shapetype>';
+      let sid=n*1000+1;
+      cols.forEach(col=>{vml+=`<v:shape id="_x0000_s${sid++}" type="#_x0000_t202" style="position:absolute;width:230pt;height:60pt;visibility:hidden" fillcolor="#fff8e1" o:insetmode="auto"><v:fill color2="#fff8e1"/><v:shadow on="t" color="black" obscured="t"/><v:path o:connecttype="none"/><v:textbox style="mso-direction-alt:auto"><div style="text-align:left"></div></v:textbox><x:ClientData ObjectType="Note"><x:MoveWithCells/><x:SizeWithCells/><x:Anchor>${col+1},15,0,5,${col+4},15,4,5</x:Anchor><x:AutoFill>False</x:AutoFill><x:Row>0</x:Row><x:Column>${col}</x:Column></x:ClientData></v:shape>`;});
+      vml+='</xml>';
+      files.push([`xl/drawings/vmlDrawing${n}.vml`,vml]);
+      files.push([`xl/worksheets/_rels/sheet${n}.xml.rels`,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdVml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing" Target="../drawings/vmlDrawing${n}.vml"/><Relationship Id="rIdCmt" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="../comments${n}.xml"/></Relationships>`]);
+    }
+  });
+  files.unshift(
+    ['[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+(hasVml?'<Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/>':'')+'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+overrides.join('')+'</Types>'],
+    ['_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${wbSheets.join('')}</sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${wbRels.join('')}</Relationships>`],
+  );
+  const u16=v=>{const b=new Uint8Array(2);new DataView(b.buffer).setUint16(0,v,true);return b;};
+  const u32=v=>{const b=new Uint8Array(4);new DataView(b.buffer).setUint32(0,v>>>0,true);return b;};
+  const chunks=[],central=[];let offset=0;
+  for(const [name,content] of files){
+    const nb=enc.encode(name),data=enc.encode(content),crc=crc32(data);
+    const lh=[u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nb.length),u16(0),nb,data];
+    chunks.push(...lh);central.push({nb,crc,size:data.length,offset});
+    offset+=lh.reduce((s,a)=>s+a.length,0);
+  }
+  const cdStart=offset,cd=[];
+  for(const e of central)cd.push(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(e.crc),u32(e.size),u32(e.size),u16(e.nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(e.offset),e.nb);
+  const cdLen=cd.reduce((s,a)=>s+a.length,0);
+  const eocd=[u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cdLen),u32(cdStart),u16(0)];
+  const all=[...chunks,...cd,...eocd];const total=all.reduce((s,a)=>s+a.length,0);
+  const out=new Uint8Array(total);let p=0;for(const a of all){out.set(a,p);p+=a.length;}
+  return out;
+}
+// Расшифровка формул — лист «Формулы» и примечания к заголовкам
+function formulaLegend(u){
+  const _src=(S.scale&&S.scale.src)?S.scale.src:'не задан';
+  const k=S.scale.umPerPx?('k = '+r3(S.scale.umPerPx)+' '+u+'/пиксель'):'k = 1 (масштаб не задан, значения в пикселях)';
+  return {
+    rows:[
+      ['Площадь','S','S = ½·|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)|·k²','Формула Гаусса (шнуровки) по вершинам полигона; '+u+'²'],
+      ['Периметр','P','P = Σ √((Δx)² + (Δy)²)·k','Сумма длин сторон полигона; '+u],
+      ['Экв. диаметр','D_экв','D_экв = √(4·S / π)','Диаметр круга с той же площадью; '+u],
+      ['Ферет макс','F_max','F_max = max‖pᵢ − pⱼ‖ по выпуклой оболочке','Наибольший габарит частицы; '+u],
+      ['Ферет мин','F_min','F_min = min(ширина) по вращающимся штангенциркулям','Наименьшая ширина опис. прямоугольника; '+u],
+      ['Соотн. сторон','AR','AR = F_max / F_min','Удлинённость (1 = изометрична)'],
+      ['Округлость','C','C = 4π·S / P²','Близость к кругу: 1 = идеальный круг, →0 = изрезанная'],
+      ['Масштаб','k',k,'Множитель перевода пиксель → реальная единица'],
+      ['Источник масштаба','—',_src,'Чем калибровались размеры. Паспорт снимка (.txt рядом со снимком, поле PixelSize) точнее промера шкалы мышью: ошибка в ±2 пикселя при длине шкалы 403 пикселя даёт ~0,5 % по длине и ~1 % по площади'],
+    ],
+    comments:{2:'S = ½·|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)|·k²\n(формула Гаусса по вершинам полигона)',
+      3:'P = Σ √((Δx)²+(Δy)²)·k',4:'D_экв = √(4·S/π)',
+      5:'F_max = наибольшее расстояние между точками выпуклой оболочки',
+      6:'F_min = наименьшая ширина описанного прямоугольника (вращающиеся штангенциркули)',
+      7:'AR = F_max / F_min',8:'C = 4π·S / P²  (1 = круг)'}
+  };
+}
+// Сводная статистика по меткам
+function computeSummary(){
+  const list=filteredShapes(),u=S.scale.umPerPx?S.scale.unit:'px';
+  const by={};
+  for(const sh of list){const m=measure(sh.points,S.scale.umPerPx);(by[sh.label]=by[sh.label]||[]).push(m);}
+  const med=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),h=s.length>>1;return s.length%2?s[h]:(s[h-1]+s[h])/2;};
+  const sd=a=>{if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-1));};
+  const rows=[];
+  for(const lab of Object.keys(by)){
+    const ms=by[lab],eq=ms.map(m=>m.eq),ar=ms.map(m=>m.ar),ci=ms.map(m=>m.circ),area=ms.map(m=>m.area);
+    const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+    rows.push([lab,ms.length,r3(mean(eq)),r3(med(eq)),r3(sd(eq)),r3(Math.min(...eq)),r3(Math.max(...eq)),
+      r3(mean(ar)),r3(mean(ci)),r3(area.reduce((x,y)=>x+y,0))]);
+  }
+  return {u,rows,by};
+}
+function statHeaders(u){return ['Метка','N',`D_экв средн. (${u})`,`D_экв медиана (${u})`,`D_экв σ (${u})`,
+  `D_экв мин (${u})`,`D_экв макс (${u})`,'AR средн.','Округл. средн.',`Сумм. площадь (${u}²)`];}
+
+$('#expXlsx').onclick=()=>{
+  if(!filteredShapes().length){toast('Нет данных для экспорта');return;}
+  const {head,rows,unit}=tableMatrix();
+  const leg=formulaLegend(unit);
+  const sum=computeSummary();
+  // Столбцы: A ID · B Метка · C Площадь · D Периметр · E D_экв · F Ферет_макс · G Ферет_мин · H AR · I Округлость
+  // Производные величины делаем живыми формулами Excel (видны в строке формул и пересчитываются)
+  const measRows=rows.map((row,i)=>{
+    const r=i+2;                       // строка в Excel (после заголовка)
+    const out=row.slice();
+    out[4]={f:`SQRT(4*C${r}/PI())`, v:row[4]};   // D_экв = √(4·S/π)
+    out[7]={f:`F${r}/G${r}`,        v:row[7]};   // AR = Fmax/Fmin
+    out[8]={f:`4*PI()*C${r}/D${r}^2`,v:row[8]};  // Округлость = 4π·S/P²
+    return out;
+  });
+  const meas={name:'Измерения',headers:head,rows:measRows,
+    comments:{2:leg.comments[2],3:leg.comments[3],4:leg.comments[4],5:leg.comments[5],6:leg.comments[6],7:leg.comments[7],8:leg.comments[8]}};
+  const summary={name:'Сводка',headers:statHeaders(unit),rows:sum.rows};
+  const formulas={name:'Формулы',headers:['Величина','Обозн.','Формула','Пояснение'],rows:leg.rows};
+  const bytes=buildXlsx([meas,summary,formulas]);
+  download(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),S.imageName+'_измерения.xlsx');
+  toast('Excel сохранён · '+rows.length+' частиц · 3 листа');
+};
+
+/* ----------------------- ВКЛАДКИ / СПРАВКА ------------------------------- */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');$('#panel-'+t.dataset.panel).classList.add('active');
+  if(t.dataset.panel==='stats')updateStats();
+});
+$('#btnHelp').onclick=()=>$('#helpBg').classList.add('show');
+$('#helpClose').onclick=()=>$('#helpBg').classList.remove('show');
+$('#helpBg').onclick=e=>{if(e.target===$('#helpBg'))$('#helpBg').classList.remove('show');};
+$('#modalBg').onclick=e=>{if(e.target===$('#modalBg'))$('#mCancel').click();};
+
+/* ----------------------- СТАРТ ------------------------------------------- */
+// Предупреждение о потере данных при обновлении/закрытии страницы
+window.addEventListener('beforeunload',e=>{
+  if(S.shapes.length||S.scale.umPerPx){e.preventDefault();e.returnValue='';return '';}
+});
+window.addEventListener('resize',()=>{resizeCanvases();});
+renderLabels();resizeCanvases();updateTable();
+// напоминание при первой загрузке снимка/проекта, что данные не хранятся
+let _warnedVolatile=false;
+function warnVolatile(){if(_warnedVolatile)return;_warnedVolatile=true;
+  setTimeout(()=>toast('Разметка автосохраняется в браузере. Итог всё равно сохраняйте в XLSX / JSON.'),700);}
+/* =========================================================================
+   МОДУЛЬ 2.0 — сенсорное управление, отмена, автосохранение, гистограмма.
+   Подключается поверх базовых функций, расчётные алгоритмы не изменяются.
+   ========================================================================= */
+
+/* ---------- ОТМЕНА (Ctrl+Z / кнопка ↶) ---------- */
+S._undo=[];
+function pushUndo(){
+  S._undo.push(JSON.stringify({shapes:S.shapes,nextId:S.nextId}));
+  if(S._undo.length>60)S._undo.shift();
+}
+function doUndo(){
+  const raw=S._undo.pop();
+  if(!raw){toast('Отменять нечего');return;}
+  const st=JSON.parse(raw);
+  S.shapes=st.shapes;S.nextId=st.nextId;S.sel=null;S.draft=null;S.dragVtx=null;
+  refreshAfterChange(true);toast('Отменено');
+}
+$('#btnUndo').onclick=doUndo;
+window.addEventListener('keydown',e=>{
+  const inField=e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.isContentEditable;
+  if(!inField&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();doUndo();}
+});
+
+/* ---------- ПАНЕЛЬ ОБВОДКИ (палец не умеет dblclick) ---------- */
+$('#draftDone').onclick=()=>finishDraft();
+$('#draftUndoPt').onclick=()=>{
+  if(S.draft&&S.draft.length){S.draft.pop();if(!S.draft.length)S.draft=null;render();}
+};
+
+/* ---------- ЛУПА ПОД ПАЛЬЦЕМ + индикация панели обводки ---------- */
+function drawLoupe(){
+  if(!S.loupe||!S.img)return;
+  const [lx,ly]=S.loupe;
+  const R=54, off=92, mag=2.3;
+  const cy = (ly-off < R+6) ? ly+off : ly-off;
+  const [ix,iy]=screenToImg(lx,ly);
+  const zz=S.z*mag;
+  octx.save();
+  octx.beginPath();octx.arc(lx,cy,R,0,Math.PI*2);octx.closePath();
+  octx.fillStyle='#0d1014';octx.fill();octx.clip();
+  octx.drawImage(S.img, lx-ix*zz, cy-iy*zz, S.imgW*zz, S.imgH*zz);
+  /* последний сегмент черновика — чтобы видеть, куда ляжет линия */
+  if(S.draft&&S.draft.length>1){
+    const a=S.draft[S.draft.length-2];
+    octx.beginPath();
+    octx.moveTo(lx+(a[0]-ix)*zz, cy+(a[1]-iy)*zz);
+    octx.lineTo(lx, cy);
+    octx.strokeStyle=labelColor(S.curLabel);octx.lineWidth=2;octx.stroke();
+  }
+  octx.restore();
+  octx.beginPath();octx.arc(lx,cy,R,0,Math.PI*2);
+  octx.strokeStyle='#35d6c4';octx.lineWidth=2;octx.stroke();
+  octx.beginPath();
+  octx.moveTo(lx-11,cy);octx.lineTo(lx+11,cy);
+  octx.moveTo(lx,cy-11);octx.lineTo(lx,cy+11);
+  octx.strokeStyle='#ffb347';octx.lineWidth=1.4;octx.stroke();
+}
+const _renderBase=render;
+render=function(){
+  _renderBase();
+  drawLoupe();
+  const db=document.getElementById('draftBar');
+  if(db)db.classList.toggle('show', !!(S.draft&&S.draft.length));
+};
+
+/* ---------- СЕНСОРНОЕ УПРАВЛЕНИЕ ----------
+   1 палец: рисование / калибровка / выбор / перенос вершины / панорама.
+   2 пальца: щипок-зум вокруг центра щипка.
+   При рисовании точка «липнет» к пальцу до отпускания — с лупой это
+   позволяет ставить вершины точнее, чем мышью.                      */
+let touchState=null;
+function tPt(t){const r=overlay.getBoundingClientRect();return [t.clientX-r.left,t.clientY-r.top];}
+function hitVertexTouch(ix,iy){
+  for(const sh of filteredShapes()){
+    for(let i=0;i<sh.points.length;i++){
+      const [px,py]=sh.points[i];
+      if(Math.hypot(px-ix,py-iy)*S.z<16)return {shapeId:sh.id,idx:i};
+    }
+  }
+  return null;
+}
+overlay.addEventListener('touchstart',e=>{
+  if(!S.img)return;
+  e.preventDefault();
+  if(e.touches.length===2){
+    const a=tPt(e.touches[0]),b=tPt(e.touches[1]);
+    touchState={mode:'pinch',d:Math.hypot(a[0]-b[0],a[1]-b[1]),c:[(a[0]+b[0])/2,(a[1]+b[1])/2],ox:S.ox,oy:S.oy,z:S.z};
+    S.loupe=null;render();return;
+  }
+  const [sx,sy]=tPt(e.touches[0]);
+  const [ix,iy]=screenToImg(sx,sy);
+  if(S.tool==='draw'){
+    if(!S.draft)S.draft=[];
+    if(S.draft.length>=3){
+      const f=imgToScreen(...S.draft[0]);
+      if(Math.hypot(f[0]-sx,f[1]-sy)<18){finishDraft();touchState=null;return;}
+    }
+    S.draft.push([ix,iy]);
+    S.loupe=[sx,sy];touchState={mode:'draw'};render();return;
+  }
+  if(S.tool==='calibrate'){
+    if(S.calPts.length>=2)S.calPts=[];
+    S.calPts.push([ix,iy]);
+    if(S.calPts.length===2)openCalModal();
+    render();touchState=null;return;
+  }
+  const v=hitVertexTouch(ix,iy);
+  if(v){pushUndo();S.dragVtx=v;S.loupe=[sx,sy];touchState={mode:'vtx'};render();return;}
+  const id=hitShape(ix,iy);
+  if(id!=null){setSelected(id);touchState=null;return;}
+  touchState={mode:'pan',start:[sx,sy,S.ox,S.oy]};
+},{passive:false});
+overlay.addEventListener('touchmove',e=>{
+  if(!S.img||!touchState)return;
+  e.preventDefault();
+  if(touchState.mode==='pinch'&&e.touches.length===2){
+    const a=tPt(e.touches[0]),b=tPt(e.touches[1]);
+    const d=Math.hypot(a[0]-b[0],a[1]-b[1]);
+    const c=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    const z=Math.max(0.03,Math.min(40,touchState.z*d/touchState.d));
+    const ix=(touchState.c[0]-touchState.ox)/touchState.z;
+    const iy=(touchState.c[1]-touchState.oy)/touchState.z;
+    S.z=z;S.ox=c[0]-ix*z;S.oy=c[1]-iy*z;
+    render();return;
+  }
+  const [sx,sy]=tPt(e.touches[0]);
+  if(touchState.mode==='pan'){
+    S.ox=touchState.start[2]+(sx-touchState.start[0]);
+    S.oy=touchState.start[3]+(sy-touchState.start[1]);
+    render();return;
+  }
+  const p=screenToImg(sx,sy);
+  if(touchState.mode==='vtx'&&S.dragVtx){
+    const sh=S.shapes.find(s=>s.id===S.dragVtx.shapeId);
+    if(sh){sh.points[S.dragVtx.idx]=[p[0],p[1]];S.loupe=[sx,sy];render();}
+    return;
+  }
+  if(touchState.mode==='draw'&&S.draft&&S.draft.length){
+    S.draft[S.draft.length-1]=[p[0],p[1]];
+    S.loupe=[sx,sy];render();return;
+  }
+},{passive:false});
+overlay.addEventListener('touchend',e=>{
+  if(e.touches.length===0){
+    if(touchState&&touchState.mode==='vtx'&&S.dragVtx){S.dragVtx=null;refreshAfterChange(true);}
+    S.loupe=null;touchState=null;render();
+  } else if(e.touches.length===1&&touchState&&touchState.mode==='pinch'){
+    touchState={mode:'pan',start:[...tPt(e.touches[0]),S.ox,S.oy]};
+  }
+},{passive:false});
+
+/* ---------- АВТОСОХРАНЕНИЕ (localStorage) ---------- */
+function saveState(){
+  try{
+    localStorage.setItem('kalibr-autosave', JSON.stringify({
+      imageName:S.imageName, shapes:S.shapes, labels:S.labels,
+      curLabel:S.curLabel, scale:S.scale, nextId:S.nextId, ts:Date.now()
+    }));
+  }catch(e){}
+}
+const _refreshBase=refreshAfterChange;
+refreshAfterChange=function(full){_refreshBase(full);saveState();};
+function tryRestore(name){
+  try{
+    const raw=localStorage.getItem('kalibr-autosave');
+    if(!raw)return;
+    const st=JSON.parse(raw);
+    if(!st.shapes||!st.shapes.length)return;
+    if(st.imageName!==name)return;
+    if(S.shapes.length)return;
+    if(confirm('Найдено автосохранение для «'+name+'»: '+st.shapes.length+' частиц ('+new Date(st.ts).toLocaleString('ru-RU')+').\nВосстановить разметку?')){
+      S.shapes=st.shapes;
+      S.labels=st.labels&&st.labels.length?st.labels:S.labels;
+      S.curLabel=st.curLabel||S.curLabel;
+      S.nextId=st.nextId||S.shapes.length+1;
+      if(st.scale&&st.scale.umPerPx)applyScale(st.scale.umPerPx,st.scale.unit);
+      refreshAfterChange(true);
+      toast('Разметка восстановлена: '+S.shapes.length+' частиц');
+    }
+  }catch(e){}
+}
+const _setImageBase=setImage;
+setImage=function(imgEl,name){_setImageBase(imgEl,name);tryRestore(name);};
+
+/* ---------- ГИСТОГРАММА РАСПРЕДЕЛЕНИЯ D_экв ---------- */
+function appendHistogram(){
+  const wrap=$('#statsWrap');if(!wrap)return;
+  const list=filteredShapes();if(list.length<3)return;
+  const u=S.scale.umPerPx?S.scale.unit:'px';
+  const eq=list.map(sh=>measure(sh.points,S.scale.umPerPx).eq).filter(x=>x>0);
+  if(eq.length<3)return;
+  const n=eq.length,mn=Math.min(...eq),mx=Math.max(...eq);
+  if(mx===mn)return;
+  const k=Math.max(4,Math.min(14,Math.round(1+3.32*Math.log10(n))));
+  const step=(mx-mn)/k,bins=new Array(k).fill(0);
+  eq.forEach(v=>{bins[Math.min(k-1,Math.floor((v-mn)/step))]++;});
+  const bmax=Math.max(...bins);
+  const W=300,H=150,ml=6,mb=24,mt=16,bw=(W-ml*2)/k;
+  let s='<div class="group"><div class="lbl">Распределение D_экв, '+u+' (n='+n+')</div>'+
+        '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px">';
+  bins.forEach((b,i)=>{
+    const h=b/bmax*(H-mt-mb),x=ml+i*bw,y=H-mb-h;
+    s+='<rect x="'+(x+1).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+Math.max(h,0.5).toFixed(1)+'" fill="rgba(53,214,196,.5)" stroke="#35d6c4" stroke-width="1"/>';
+    if(b)s+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3).toFixed(1)+'" font-size="8.5" fill="#8d99a8" text-anchor="middle">'+b+'</text>';
+  });
+  const lstep=Math.max(1,Math.ceil(k/6));
+  for(let i=0;i<=k;i+=lstep){
+    s+='<text x="'+(ml+i*bw).toFixed(1)+'" y="'+(H-8)+'" font-size="8.5" fill="#8d99a8" text-anchor="middle">'+r2(mn+i*step)+'</text>';
+  }
+  s+='</svg></div>';
+  wrap.innerHTML+=s;
+}
+const _statsBase=updateStats;
+updateStats=function(){_statsBase();appendHistogram();};
+
+/* =========================================================================
+   МОДУЛЬ 2.1 — ПАКЕТНАЯ ОБРАБОТКА JSON
+   Читает произвольное число файлов LabelMe, считает морфометрию без
+   открытия растров и собирает сводную таблицу по всей выборке.
+   Расчётные функции берутся из ядра (measure / convexHull / shoelaceArea /
+   buildXlsx), поэтому значения совпадают с одиночным режимом до знака.
+   Метрики считаются один раз В ПИКСЕЛЯХ и умножаются на масштаб при выводе —
+   это позволяет менять калибровку без повторного чтения файлов.
+   ========================================================================= */
+const B = { files:[], rows:[], skipped:[], busy:false };
+const nextFrame = () => new Promise(r=>requestAnimationFrame(()=>r()));
+
+/* Морфометрия одного полигона в пикселях + solidity и число вершин.
+   Solidity = S / S_выпуклой_оболочки — безразмерна, служит признаком
+   агрегата: одиночное зерно даёт ~0.95–0.99, слипшийся кластер заметно ниже. */
+function batchMeasure(points){
+  const m = measure(points, 1);
+  const pts = points.map(trunc);
+  let so = 0;
+  if(pts.length>=3){
+    const ha = shoelaceArea(convexHull(pts));
+    if(ha>0) so = shoelaceArea(pts)/ha;
+  }
+  return {a:m.area,p:m.per,e:m.eq,fx:m.fmax,fn:m.fmin,ar:m.ar,ci:m.circ,so,nv:points.length};
+}
+
+function batchUnit(){
+  const L=parseFloat($('#bCalLen').value), P=parseFloat($('#bCalPx').value);
+  return (L>0&&P>0) ? $('#bCalUnit').value : 'px';
+}
+function batchDefaultK(){
+  const L=parseFloat($('#bCalLen').value), P=parseFloat($('#bCalPx').value);
+  return (L>0&&P>0) ? L/P : 1;
+}
+function batchK(fi){
+  const rec=B.files[fi];
+  return (rec && rec.k) ? rec.k : batchDefaultK();
+}
+/* Приведение пиксельных метрик к реальным единицам.
+   Площадь ~ k², линейные размеры ~ k, AR/округлость/solidity безразмерны. */
+function scaleRow(m){
+  const k=batchK(m.f);
+  return {a:m.a*k*k, p:m.p*k, e:m.e*k, fx:m.fx*k, fn:m.fn*k,
+          ar:m.ar, ci:m.ci, so:m.so, nv:m.nv, lbl:m.lbl, f:m.f, n:m.n};
+}
+
+function setProg(frac,txt){
+  $('#bBar').style.width=Math.round(frac*100)+'%';
+  $('#bProgTxt').textContent=txt;
+}
+
+async function batchRun(fileList){
+  if(B.busy){toast('Обработка уже идёт');return;}
+  const files=[...fileList].filter(f=>/\.json$/i.test(f.name))
+    .sort((a,b)=>a.name.localeCompare(b.name,'ru',{numeric:true}));
+  if(!files.length){toast('JSON-файлы не выбраны');return;}
+  const bytes=files.reduce((s,f)=>s+f.size,0);
+  if(bytes>150e6 && !confirm('Выбрано '+files.length+' файлов на '+(bytes/1e6).toFixed(0)+
+     ' МБ. На слабом устройстве вкладка может не справиться. Продолжить?')) return;
+
+  B.busy=true; B.rows=[]; B.skipped=[]; B.files=[];
+  $('#bCalGroup').style.display=''; $('#bProgGroup').style.display='';
+  $('#bResGroup').style.display='none';
+  const t0=performance.now();
+  try{
+
+  for(let fi=0; fi<files.length; fi++){
+    const f=files[fi];
+    setProg(fi/files.length, 'файл '+(fi+1)+' из '+files.length+' · '+f.name);
+    await nextFrame();
+    let txt=null,d=null;
+    try{ txt=await f.text(); }
+    catch(err){ B.skipped.push([f.name,'—','—','файл не прочитан']); continue; }
+    // встроенный растр отбрасываем до разбора — иначе на 40 файлах это лишние ~12 МБ
+    txt=txt.replace(/"imageData"\s*:\s*"[^"]*"/,'"imageData":null');
+    try{ d=JSON.parse(txt); }
+    catch(err){ B.skipped.push([f.name,'—','—','повреждённый JSON']); txt=null; continue; }
+    txt=null;
+    if(!d || !Array.isArray(d.shapes)){
+      B.skipped.push([f.name,'—','—','нет массива shapes']); d=null; continue;
+    }
+    const name=d.imagePath||f.name;
+    const rec={name,file:f.name,w:d.imageWidth||0,h:d.imageHeight||0,k:null,counts:{},n:0};
+    const shapes=d.shapes;
+    for(let i=0;i<shapes.length;i++){
+      const s=shapes[i]||{};
+      const lbl=s.label||'без метки';
+      if(s.shape_type && s.shape_type!=='polygon'){ B.skipped.push([name,i+1,lbl,'не полигон']); continue; }
+      const pts=s.points||[];
+      if(pts.length<3){ B.skipped.push([name,i+1,lbl,'менее 3 вершин']); continue; }
+      const m=batchMeasure(pts);
+      if(!(m.a>0)||!(m.p>0)){ B.skipped.push([name,i+1,lbl,'нулевая площадь']); continue; }
+      m.f=fi; m.n=i+1; m.lbl=lbl;
+      rec.counts[lbl]=(rec.counts[lbl]||0)+1; rec.n++;
+      B.rows.push(m);
+      if((i&511)===511) await nextFrame();
+    }
+    B.files.push(rec);
+    d=null;
+  }
+  setProg(1,'готово · '+((performance.now()-t0)/1000).toFixed(1)+' с');
+  }catch(err){
+    setProg(0,'сбой: '+err.message);
+    toast('Ошибка обработки: '+err.message);
+    console.error('[КАЛИБР пакет]',err);
+  }finally{
+    B.busy=false;
+  }
+  if(!B.rows.length){
+    toast(B.skipped.length ? 'Полигоны не найдены · пропущено '+B.skipped.length
+                           : 'В выбранных файлах нет полигонов');
+    return;
+  }
+  renderBatch();
+  toast('Обработано файлов: '+B.files.length+' · объектов: '+B.rows.length);
+}
+
+function batchLabels(){
+  const set=new Set(B.rows.map(r=>r.lbl));
+  return [...set].sort();
+}
+const _mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const _sd=a=>{if(a.length<2)return 0;const m=_mean(a);return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-1));};
+
+function batchSummaryRows(){
+  const u=batchUnit(), labs=batchLabels(), tot=B.rows.length, out=[];
+  for(const lab of labs){
+    const rs=B.rows.filter(r=>r.lbl===lab).map(scaleRow);
+    const e=rs.map(r=>r.e);
+    out.push([lab, rs.length, r3(100*rs.length/tot), r3(_mean(e)), r3(median(e)), r3(_sd(e)),
+      r3(Math.min(...e)), r3(Math.max(...e)), r3(_mean(rs.map(r=>r.ar))),
+      r3(_mean(rs.map(r=>r.ci))), r3(_mean(rs.map(r=>r.so))),
+      r3(rs.reduce((s,r)=>s+r.a,0))]);
+  }
+  return {u,labs,rows:out};
+}
+function batchSummaryHead(u){
+  return ['Метка','N','Доля, %',`D_экв средн. (${u})`,`D_экв медиана (${u})`,`D_экв σ (${u})`,
+    `D_экв мин (${u})`,`D_экв макс (${u})`,'AR средн.','Округл. средн.','Solidity средн.',`Сумм. площадь (${u}²)`];
+}
+function batchFilesHead(labs,u){
+  return ['Файл','Всего',...labs,'Соотн. 1-я:2-я метка',`D_экв средн. (${u})`,`Масштаб (${u}/px)`];
+}
+function batchFilesRows(labs,u){
+  return B.files.map((rec,fi)=>{
+    const rs=B.rows.filter(r=>r.f===fi).map(scaleRow);
+    const c=labs.map(l=>rec.counts[l]||0);
+    const ratio=(labs.length>=2&&c[0]>0)?r3(c[1]/c[0]):'';
+    return [rec.name, rec.n, ...c, ratio, r3(_mean(rs.map(r=>r.e))), r3(batchK(fi))];
+  });
+}
+
+function renderBatch(){
+  if(!B.rows.length){ $('#bResGroup').style.display='none'; return; }
+  $('#bResGroup').style.display='';
+  const {u,labs,rows}=batchSummaryRows();
+  const tot=B.rows.length;
+  let h='<div class="help">'+
+    '<div><span>файлов</span><b>'+B.files.length+'</b></div>'+
+    '<div><span>объектов</span><b>'+tot+'</b></div>'+
+    '<div><span>объектов на снимок</span><b>'+r2(tot/B.files.length)+'</b></div>'+
+    (B.skipped.length?'<div><span>пропущено</span><b>'+B.skipped.length+'</b></div>':'')+
+    '</div>';
+  h+='<table style="width:100%;margin-top:10px;font-size:12px;border-collapse:collapse">'+
+     '<tr><th style="text-align:left">Метка</th><th>N</th><th>%</th><th>D_экв, '+u+'</th><th>AR</th><th>Округл.</th></tr>';
+  rows.forEach(r=>{
+    h+='<tr><td><span class="ldot" style="background:'+labelColor(r[0])+'"></span>'+r[0]+'</td>'+
+       '<td style="text-align:center">'+r[1]+'</td><td style="text-align:center">'+r[2]+'</td>'+
+       '<td style="text-align:center">'+r[3]+' ± '+r[5]+'</td>'+
+       '<td style="text-align:center">'+r[8]+'</td><td style="text-align:center">'+r[9]+'</td></tr>';
+  });
+  h+='</table>';
+  if(labs.length>=2){
+    const a=rows[0][1],b=rows[1][1];
+    if(a>0) h+='<div class="help" style="margin-top:8px"><div><span>соотношение '+
+      labs[0]+' : '+labs[1]+'</span><b>1 : '+r2(b/a)+'</b></div></div>';
+  }
+  $('#bSummary').innerHTML=h;
+
+  let ft='<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+    '<tr><th style="text-align:left">Файл</th><th>всего</th>'+labs.map(l=>'<th>'+l+'</th>').join('')+'</tr>';
+  B.files.forEach(rec=>{
+    ft+='<tr><td style="font-family:var(--mono);font-size:11px">'+rec.name+'</td>'+
+        '<td style="text-align:center">'+rec.n+'</td>'+
+        labs.map(l=>'<td style="text-align:center">'+(rec.counts[l]||0)+'</td>').join('')+'</tr>';
+  });
+  ft+='</table>';
+  $('#bFiles').innerHTML=ft;
+  renderPerFileCal();
+  const k=batchDefaultK();
+  $('#bCalInfo').textContent = u==='px'
+    ? 'Масштаб не задан — значения в пикселях.'
+    : 'k = '+r3(k)+' '+u+'/пиксель · применяется ко всем файлам, кроме переопределённых.';
+}
+
+function renderPerFileCal(){
+  const wrap=$('#bPerFileWrap');
+  if(!$('#bPerFile').checked || !B.files.length){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  let h='<div class="help" style="margin-bottom:6px">Пусто — используется масштаб пакета.</div>';
+  B.files.forEach((rec,fi)=>{
+    h+='<div class="row" style="margin-bottom:5px;align-items:center">'+
+       '<div style="flex:1;font-size:11px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis">'+rec.name+'</div>'+
+       '<input type="number" class="miniinput bkin" data-fi="'+fi+'" step="any" placeholder="'+
+       r3(batchDefaultK())+'" value="'+(rec.k?r3(rec.k):'')+'" style="flex:0 0 88px">'+
+       '</div>';
+  });
+  wrap.innerHTML=h;
+  wrap.querySelectorAll('.bkin').forEach(inp=>{
+    inp.onchange=()=>{
+      const v=parseFloat(inp.value);
+      B.files[+inp.dataset.fi].k = (v>0)?v:null;
+      renderBatch();
+    };
+  });
+}
+
+function batchLegend(u){
+  const k=(u==='px')?'k = 1 (масштаб не задан, значения в пикселях)'
+                    :'k = '+r3(batchDefaultK())+' '+u+'/пиксель (масштаб пакета)';
+  return [
+    ['Площадь','S','S = ½·|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)|·k²','Формула Гаусса по вершинам полигона; '+u+'²'],
+    ['Периметр','P','P = Σ √((Δx)² + (Δy)²)·k','Сумма длин сторон полигона; '+u],
+    ['Экв. диаметр','D_экв','D_экв = √(4·S / π)','Диаметр круга с той же площадью; '+u],
+    ['Ферет макс','F_max','F_max = max‖pᵢ − pⱼ‖ по выпуклой оболочке','Наибольший габарит; '+u],
+    ['Ферет мин','F_min','F_min = min(ширина) по вращающимся штангенциркулям','Наименьшая ширина опис. прямоугольника; '+u],
+    ['Соотн. сторон','AR','AR = F_max / F_min','Удлинённость (1 = изометрична)'],
+    ['Округлость','C','C = 4π·S / P²','1 = круг, →0 = изрезанная'],
+    ['Solidity','Sol','Sol = S / S_выпуклой_оболочки','Признак агрегата: одиночное зерно ≈0.95–0.99'],
+    ['Вершин','—','число точек полигона','Детализация обводки; на C и AR влияния не выявлено'],
+    ['Масштаб','k',k,'Множитель пиксель → реальная единица'],
+    ['','','',''],
+    ['Значения в листе «Все объекты» записаны числами, без живых формул Excel:','','',
+     'при десятках тысяч строк формулы раздувают файл в разы. Расчёт вёлся в пикселях и умножался на k.'],
+  ];
+}
+
+function batchSheets(){
+  const u=batchUnit(), labs=batchLabels();
+  const head=['Файл','№','Метка',`Площадь (${u}²)`,`Периметр (${u})`,`D_экв (${u})`,
+    `Ферет_макс (${u})`,`Ферет_мин (${u})`,'Соотн. сторон','Округлость','Solidity','Вершин'];
+  const rows=B.rows.map(m=>{
+    const r=scaleRow(m);
+    return [B.files[m.f].name, m.n, m.lbl, r3(r.a), r3(r.p), r3(r.e), r3(r.fx), r3(r.fn),
+      Math.round(r.ar*10000)/10000, Math.round(r.ci*10000)/10000,
+      Math.round(r.so*10000)/10000, r.nv];
+  });
+  const s=batchSummaryRows();
+  const sheets=[
+    {name:'Все объекты',headers:head,rows},
+    {name:'Сводка',headers:batchSummaryHead(u),rows:s.rows},
+    {name:'По файлам',headers:batchFilesHead(labs,u),rows:batchFilesRows(labs,u)},
+    {name:'Формулы',headers:['Величина','Обозн.','Формула','Пояснение'],rows:batchLegend(u)},
+  ];
+  if(B.skipped.length)
+    sheets.push({name:'Пропущено',headers:['Файл','№','Метка','Причина'],rows:B.skipped});
+  return sheets;
+}
+
+/* ---------- обработчики панели ---------- */
+$('#bPick').onclick=()=>$('#fileBatch').click();
+/* input.files — живая коллекция: сброс value очищает её.
+   Поэтому сначала копируем в массив, и только потом обнуляем input
+   (обнуление нужно, чтобы повторный выбор тех же файлов снова дал change). */
+$('#fileBatch').onchange=e=>{
+  const fl=Array.from(e.target.files||[]);
+  e.target.value='';
+  if(!fl.length){toast('Файлы не выбраны');return;}
+  batchRun(fl);
+};
+['#bCalLen','#bCalPx'].forEach(id=>{ $(id).oninput=()=>{ if(B.rows.length)renderBatch(); }; });
+$('#bCalUnit').onchange=()=>{ if(B.rows.length)renderBatch(); };
+$('#bPerFile').onchange=renderPerFileCal;
+$('#bClear').onclick=()=>{
+  B.files=[];B.rows=[];B.skipped=[];
+  $('#bResGroup').style.display='none';$('#bProgGroup').style.display='none';
+  $('#bPerFileWrap').style.display='none';$('#bPerFile').checked=false;
+  toast('Пакет очищен');
+};
+$('#bExport').onclick=()=>{
+  if(!B.rows.length){toast('Пакет пуст');return;}
+  const bytes=buildXlsx(batchSheets());
+  download(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
+    'КАЛИБР_пакет_'+B.files.length+'снимков.xlsx');
+  toast('Excel сохранён · '+B.rows.length+' объектов · '+(bytes.length/1e6).toFixed(1)+' МБ');
+};
+$('#bExportCsv').onclick=()=>{
+  if(!B.rows.length){toast('Пакет пуст');return;}
+  const sh=batchSheets()[0];
+  const esc=v=>{v=String(v).replace(/\./g,',');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const lines=[sh.headers.map(esc).join(';'),...sh.rows.map(r=>r.map(esc).join(';'))];
+  download(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),
+    'КАЛИБР_пакет_'+B.files.length+'снимков.csv');
+  toast('CSV сохранён');
+};
+</script>
+</body>
+</html>

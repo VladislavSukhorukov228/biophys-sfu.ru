@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>БИОС-3 v3 · Кафедра биофизики СФУ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/*═══════════════════════════════════════════════════════════
+  RESET & VARIABLES
+═══════════════════════════════════════════════════════════*/
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#03071a;--bg2:#0a1030;--bg3:#0f1845;--card:#111d45;
+  --green:#00ff88;--cyan:#00d4ff;--orange:#ff9500;--red:#ff3b5c;
+  --purple:#b44eff;--yellow:#ffe033;--text:#e8f0ff;--muted:#5a7090;
+  --glow-g:0 0 14px #00ff8880;--glow-c:0 0 14px #00d4ff80;--glow-r:0 0 14px #ff3b5c80;
+  --radius:14px;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'Exo 2',sans-serif;-webkit-font-smoothing:antialiased;
+}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden}
+.hidden{display:none!important}
+
+/*═══════════════════════════════════════════════════════════
+  NEBULA BACKGROUND CANVAS
+═══════════════════════════════════════════════════════════*/
+#stars-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/*═══════════════════════════════════════════════════════════
+  ██ INTRO SCREEN
+═══════════════════════════════════════════════════════════*/
+#intro{z-index:10;align-items:center;justify-content:center;background:transparent}
+.intro-inner{position:relative;z-index:2;display:flex;flex-direction:column;
+  align-items:center;text-align:center;gap:0;padding:16px 20px}
+
+/* Анимированная станция */
+.station-container{width:180px;height:180px;position:relative;margin-bottom:8px;
+  animation:station-orbit 6s ease-in-out infinite}
+@keyframes station-orbit{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  25%{transform:translateY(-10px) rotate(1deg)}
+  50%{transform:translateY(-18px) rotate(-0.5deg)}
+  75%{transform:translateY(-8px) rotate(0.5deg)}
+}
+.station-glow{position:absolute;inset:-20px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,212,255,0.15) 0%,transparent 70%);
+  animation:glow-pulse 3s ease-in-out infinite}
+@keyframes glow-pulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+
+.station-svg{width:100%;height:100%;filter:drop-shadow(0 0 24px #00d4ff) drop-shadow(0 0 50px #00d4ff40)}
+
+/* Орбитальные кольца */
+.orbit-ring{position:absolute;border-radius:50%;border:1px solid rgba(0,212,255,0.12);
+  animation:orbit-spin linear infinite}
+.orbit-ring:nth-child(2){inset:-30px;animation-duration:12s;border-color:rgba(0,255,136,0.1)}
+.orbit-ring:nth-child(3){inset:-50px;animation-duration:18s;border-style:dashed;border-color:rgba(180,78,255,0.08)}
+.orbit-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan);top:-2px;left:50%}
+@keyframes orbit-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.intro-badge{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:4px;
+  color:var(--cyan);text-transform:uppercase;
+  background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);
+  border-radius:20px;padding:5px 16px;margin-bottom:10px}
+.intro-title{font-family:'Orbitron',sans-serif;font-size:clamp(26px,8vw,38px);
+  font-weight:900;line-height:1.1;
+  background:linear-gradient(135deg,#00ff88,#00d4ff,#b44eff);background-size:200% 200%;
+  animation:title-shift 4s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 20px #00d4ff50);margin-bottom:6px}
+@keyframes title-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.intro-subtitle{font-size:13px;color:var(--muted);margin-bottom:4px;max-width:320px}
+.intro-desc{font-size:11px;color:#3a5070;margin-bottom:6px;max-width:300px;line-height:1.6}
+
+/* Баннер кафедры */
+.dept-intro-card{background:linear-gradient(135deg,rgba(180,78,255,0.1),rgba(0,212,255,0.08));
+  border:1px solid rgba(180,78,255,0.25);border-radius:14px;padding:12px 16px;
+  margin:4px auto 14px;max-width:320px;text-align:center;
+  animation:dept-fade-in 1.5s 0.5s both}
+@keyframes dept-fade-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.dept-logo-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px}
+.dept-logo-icon{font-size:22px}
+.dept-name{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;
+  color:var(--purple);font-weight:700;text-transform:uppercase}
+.dept-sub{font-size:10px;color:var(--muted);line-height:1.5}
+.dept-sub strong{color:var(--cyan)}
+
+/* Кнопка ПОЕХАЛИ */
+#btn-go{position:relative;font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;
+  letter-spacing:2px;color:var(--bg);
+  background:linear-gradient(135deg,#00ff88,#00d4ff);
+  border:none;border-radius:50px;padding:16px 52px;cursor:pointer;
+  text-transform:uppercase;
+  box-shadow:0 0 30px #00ff8860,0 0 60px #00d4ff30;
+  transition:transform 0.12s,box-shadow 0.12s;overflow:hidden}
+#btn-go::after{content:'';position:absolute;inset:0;
+  background:rgba(255,255,255,0.15);transform:translateX(-100%) skewX(-20deg);
+  transition:transform 0.4s}
+#btn-go:active{transform:scale(0.95)}
+#btn-go:hover::after{transform:translateX(200%) skewX(-20deg)}
+.btn-go-pulse{animation:go-pulse 2s ease-in-out infinite}
+@keyframes go-pulse{
+  0%,100%{box-shadow:0 0 30px #00ff8860,0 0 60px #00d4ff30}
+  50%{box-shadow:0 0 50px #00ff88a0,0 0 90px #00d4ff60}
+}
+.intro-hint{font-size:11px;color:var(--muted);margin-top:10px;letter-spacing:0.5px}
+
+/*═══════════════════════════════════════════════════════════
+  ██ GAME SCREEN
+═══════════════════════════════════════════════════════════*/
+#game{z-index:5;overflow-y:auto;overflow-x:hidden;background:var(--bg);
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+#game::-webkit-scrollbar{width:3px}
+#game::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:2px}
+
+.topbar{position:sticky;top:0;z-index:20;
+  background:rgba(3,7,26,0.94);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(0,212,255,0.15);
+  display:flex;align-items:center;padding:8px 12px;gap:8px}
+.tb-title{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--cyan);
+  flex:1;letter-spacing:1px}
+.tb-day{font-family:'Orbitron',sans-serif;font-size:12px;color:var(--green);
+  background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);
+  border-radius:8px;padding:4px 10px;white-space:nowrap}
+.tb-timer{font-family:'Orbitron',sans-serif;font-size:12px;color:var(--yellow);
+  background:rgba(255,224,51,0.08);border:1px solid rgba(255,224,51,0.2);
+  border-radius:8px;padding:4px 10px;white-space:nowrap}
+.tb-actions{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--purple);
+  background:rgba(180,78,255,0.08);border:1px solid rgba(180,78,255,0.2);
+  border-radius:8px;padding:4px 8px;white-space:nowrap}
+
+/* Деградация */
+.deg-bar-wrap{padding:6px 12px 4px;background:rgba(3,7,26,0.7)}
+.deg-bar-label{font-size:10px;color:var(--muted);margin-bottom:3px;display:flex;justify-content:space-between}
+.deg-bar-track{height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.deg-bar-fill{height:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--red),var(--orange),var(--green));
+  background-size:300% 100%;transition:width 0.5s,background-position 0.5s}
+
+/* Ресурсы */
+.resources-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 10px}
+.res-card{background:var(--card);border:1px solid rgba(255,255,255,0.05);
+  border-radius:10px;padding:6px 4px;text-align:center;transition:border-color 0.3s,box-shadow 0.3s}
+.res-card.warning{border-color:rgba(255,149,0,0.5);box-shadow:0 0 8px rgba(255,149,0,0.2)}
+.res-card.danger{border-color:rgba(255,59,92,0.7);box-shadow:0 0 12px rgba(255,59,92,0.3);
+  animation:res-pulse 0.6s ease-in-out infinite alternate}
+@keyframes res-pulse{from{box-shadow:0 0 8px rgba(255,59,92,0.3)}to{box-shadow:0 0 18px rgba(255,59,92,0.7)}}
+.res-icon{font-size:16px;line-height:1}
+.res-value{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;
+  color:white;margin:2px 0;transition:color 0.3s}
+.res-label{font-size:8px;color:var(--muted);letter-spacing:0.3px}
+.res-minibar{height:2px;border-radius:1px;margin-top:3px;background:rgba(255,255,255,0.08);overflow:hidden}
+.res-minibar-fill{height:100%;border-radius:1px;transition:width 0.4s}
+
+/* График */
+.chart-wrap{padding:8px 10px 4px}
+.chart-title{font-size:10px;color:var(--muted);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:6px;padding-left:2px}
+.chart-canvas-wrap{background:var(--card);border-radius:12px;
+  border:1px solid rgba(255,255,255,0.06);padding:8px;position:relative}
+#chart-select{position:absolute;top:8px;right:8px;background:var(--bg3);color:var(--text);
+  border:1px solid rgba(255,255,255,0.12);border-radius:8px;font-size:10px;
+  padding:3px 6px;font-family:'Exo 2',sans-serif;-webkit-appearance:none;appearance:none}
+
+/* Действия */
+.section-title{font-size:10px;color:var(--muted);letter-spacing:1.5px;
+  text-transform:uppercase;padding:8px 12px 4px}
+.actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 10px 6px}
+.act-btn{position:relative;overflow:hidden;display:flex;align-items:center;gap:8px;
+  background:var(--card);border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px;padding:10px 10px;cursor:pointer;transition:all 0.15s;
+  text-align:left;color:var(--text);font-family:'Exo 2',sans-serif;
+  -webkit-tap-highlight-color:transparent}
+.act-btn:active{transform:scale(0.96)}
+.act-btn::before{content:'';position:absolute;inset:0;opacity:0.12;border-radius:12px}
+.btn-green::before{background:linear-gradient(135deg,var(--green),transparent)}
+.btn-cyan::before{background:linear-gradient(135deg,var(--cyan),transparent)}
+.btn-purple::before{background:linear-gradient(135deg,var(--purple),transparent)}
+.btn-orange::before{background:linear-gradient(135deg,var(--orange),transparent)}
+.btn-red::before{background:linear-gradient(135deg,var(--red),transparent)}
+.btn-yellow::before{background:linear-gradient(135deg,var(--yellow),transparent)}
+.act-icon{font-size:20px;flex-shrink:0}
+.act-text{display:flex;flex-direction:column;min-width:0}
+.act-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-cost{font-size:9px;color:var(--muted)}
+
+/* Кнопка следующий день */
+.next-day-wrap{padding:8px 10px 4px}
+#btn-next{width:100%;font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;
+  letter-spacing:1px;color:var(--bg);
+  background:linear-gradient(135deg,#00ff88,#00d4ff);
+  border:none;border-radius:14px;padding:16px;cursor:pointer;
+  box-shadow:0 0 20px rgba(0,255,136,0.25);
+  transition:transform 0.1s,box-shadow 0.15s;
+  -webkit-tap-highlight-color:transparent;overflow:hidden;position:relative}
+#btn-next:active{transform:scale(0.97)}
+#btn-next.disabled{opacity:0.4;pointer-events:none}
+
+/* Факты */
+.facts-section{padding:0 10px 6px}
+.facts-card{background:var(--card);border-radius:12px;
+  border:1px solid rgba(0,212,255,0.1);padding:14px;position:relative;overflow:hidden}
+.facts-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.fact-tag{display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:1px;
+  color:var(--cyan);text-transform:uppercase;margin-bottom:8px}
+.fact-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 6px var(--cyan);animation:fact-blink 2s infinite}
+@keyframes fact-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.fact-text{font-size:12px;color:var(--text);line-height:1.7;min-height:50px;
+  transition:opacity 0.3s}
+.fact-nav{display:flex;gap:8px;margin-top:10px;justify-content:center}
+.fact-nav-btn{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.15);
+  color:var(--cyan);width:34px;height:34px;border-radius:50%;
+  font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.fact-nav-btn:active{background:rgba(0,212,255,0.3);transform:scale(0.9)}
+
+/* Лог */
+.log-section{padding:0 10px 6px}
+.log-box{background:var(--card);border-radius:10px;max-height:120px;overflow-y:auto;
+  padding:8px 10px;font-size:10px;line-height:1.6;
+  border:1px solid rgba(255,255,255,0.05)}
+.log-box::-webkit-scrollbar{width:2px}
+.log-box::-webkit-scrollbar-thumb{background:var(--cyan)}
+.log-entry{color:var(--muted);padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.log-entry.sci{color:var(--cyan)}
+.log-entry.warn{color:var(--orange)}
+.log-entry.event{color:var(--purple)}
+.spacer{height:30px}
+
+/* Toasts */
+#toast-container{position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:100;
+  display:flex;flex-direction:column;gap:6px;width:90%;max-width:360px;pointer-events:none}
+.toast{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;
+  animation:toast-in 0.3s,toast-out 0.4s 1.7s forwards;pointer-events:none}
+.toast.success{background:rgba(0,255,136,0.15);border:1px solid rgba(0,255,136,0.3);color:var(--green)}
+.toast.warn{background:rgba(255,149,0,0.15);border:1px solid rgba(255,149,0,0.3);color:var(--orange)}
+.toast.info{background:rgba(180,78,255,0.15);border:1px solid rgba(180,78,255,0.3);color:var(--purple)}
+@keyframes toast-in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toast-out{to{opacity:0;transform:translateY(-20px)}}
+
+/* Popup */
+#popup-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.popup-card{background:var(--bg2);border:1px solid rgba(0,212,255,0.2);
+  border-radius:18px;padding:28px 24px;max-width:320px;width:90%;text-align:center}
+.popup-icon{font-size:40px;margin-bottom:10px}
+.popup-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;
+  color:var(--cyan);margin-bottom:8px}
+.popup-body{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:16px}
+.popup-btns{display:flex;gap:10px;justify-content:center}
+.popup-btn{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:600;
+  border:none;border-radius:10px;padding:10px 20px;cursor:pointer}
+.popup-btn.primary{background:var(--cyan);color:var(--bg)}
+.popup-btn.secondary{background:rgba(255,255,255,0.08);color:var(--muted)}
+
+/* Ripple */
+.ripple-effect{position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);
+  transform:scale(0);animation:ripple-anim 0.6s linear;pointer-events:none}
+@keyframes ripple-anim{to{transform:scale(3);opacity:0}}
+
+/*═══════════════════════════════════════════════════════════
+  ██ END SCREENS
+═══════════════════════════════════════════════════════════*/
+.end-screen{z-index:15;align-items:center;justify-content:center;
+  background:rgba(3,7,26,0.97);text-align:center;padding:20px;overflow-y:auto}
+.end-anim{font-size:72px;margin-bottom:12px;
+  animation:end-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes end-bounce{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.end-title{font-family:'Orbitron',sans-serif;font-size:clamp(24px,7vw,36px);
+  font-weight:900;margin-bottom:10px;line-height:1.1}
+.end-title.win{background:linear-gradient(135deg,#00ff88,#00d4ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.end-title.lose{color:var(--red)}
+.end-time{font-family:'Orbitron',sans-serif;font-size:42px;font-weight:900;
+  color:var(--yellow);text-shadow:0 0 20px rgba(255,224,51,0.5);
+  margin:14px 0;animation:time-glow 1.5s ease-in-out infinite alternate}
+@keyframes time-glow{from{text-shadow:0 0 10px rgba(255,224,51,0.3)}to{text-shadow:0 0 30px rgba(255,224,51,0.8)}}
+.end-label{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.end-msg{font-size:14px;color:var(--text);line-height:1.7;max-width:320px;margin:12px auto}
+.end-issues{text-align:left;max-width:320px;margin:10px auto}
+.end-issue-item{font-size:12px;color:var(--red);padding:5px 0;
+  border-bottom:1px solid rgba(255,59,92,0.12);display:flex;gap:8px;align-items:flex-start}
+
+.dept-banner{background:linear-gradient(135deg,rgba(180,78,255,0.12),rgba(0,212,255,0.1));
+  border:1px solid rgba(180,78,255,0.25);border-radius:14px;padding:16px 20px;
+  margin:16px auto;max-width:340px}
+.dept-banner-title{font-family:'Orbitron',sans-serif;font-size:12px;color:var(--purple);
+  margin-bottom:6px;font-weight:700}
+.dept-banner-text{font-size:11px;color:var(--text);line-height:1.6}
+
+.score-card{background:var(--card);border-radius:12px;padding:12px 20px;
+  margin:10px auto;max-width:300px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.score-item{text-align:center}
+.score-val{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:var(--cyan)}
+.score-lbl{font-size:9px;color:var(--muted);margin-top:2px}
+
+.btn-restart{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:1px;color:var(--bg);background:linear-gradient(135deg,#00ff88,#00d4ff);
+  border:none;border-radius:50px;padding:14px 36px;cursor:pointer;
+  margin-top:16px;margin-bottom:10px;box-shadow:0 0 20px rgba(0,255,136,0.3);
+  -webkit-tap-highlight-color:transparent}
+
+/* Confetti */
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:20;overflow:hidden}
+.confetti-piece{position:absolute;top:-10px;width:8px;height:14px;border-radius:2px;
+  animation:confetti-fall linear forwards}
+@keyframes confetti-fall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0}
+}
+
+/* Particles */
+.particle{position:fixed;border-radius:50%;pointer-events:none;z-index:200;
+  animation:particle-fly 0.7s ease-out forwards}
+@keyframes particle-fly{
+  0%{transform:translate(0,0) scale(1);opacity:1}
+  100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<!-- ████████████████ INTRO SCREEN ████████████████ -->
+<div id="intro" class="screen">
+  <div class="intro-inner">
+
+    <!-- Космическая станция SVG -->
+    <div class="station-container">
+      <div class="station-glow"></div>
+      <div class="orbit-ring"><div class="orbit-dot"></div></div>
+      <div class="orbit-ring"></div>
+      <div class="orbit-ring"></div>
+      <svg class="station-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Центральный модуль -->
+        <rect x="82" y="50" width="36" height="100" rx="8" fill="#0f2060" stroke="#00d4ff" stroke-width="1.2"/>
+        <rect x="88" y="58" width="24" height="84" rx="4" fill="#1a3080"/>
+        <!-- Иллюминаторы -->
+        <circle cx="100" cy="78" r="8" fill="#0a1a50" stroke="#00d4ff" stroke-width="1.2"/>
+        <circle cx="100" cy="78" r="5" fill="#2060d0"/>
+        <circle cx="97" cy="75" r="2" fill="white" opacity="0.5"/>
+        <circle cx="100" cy="105" r="5" fill="#0a1a50" stroke="#00d4ff" stroke-width="0.8"/>
+        <circle cx="100" cy="105" r="3" fill="#1850b0"/>
+        <!-- Солнечные панели (левые) -->
+        <rect x="10" y="85" width="65" height="30" rx="2" fill="#081840" stroke="#00ff88" stroke-width="0.8"/>
+        <line x1="25" y1="85" x2="25" y2="115" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="42" y1="85" x2="42" y2="115" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="58" y1="85" x2="58" y2="115" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="10" y1="95" x2="75" y2="95" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="10" y1="105" x2="75" y2="105" stroke="#00ff8840" stroke-width="0.5"/>
+        <!-- Солнечные панели (правые) -->
+        <rect x="125" y="85" width="65" height="30" rx="2" fill="#081840" stroke="#00ff88" stroke-width="0.8"/>
+        <line x1="140" y1="85" x2="140" y2="115" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="157" y1="85" x2="157" y2="115" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="174" y1="85" x2="174" y2="115" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="125" y1="95" x2="190" y2="95" stroke="#00ff8840" stroke-width="0.5"/>
+        <line x1="125" y1="105" x2="190" y2="105" stroke="#00ff8840" stroke-width="0.5"/>
+        <!-- Стыковочный модуль (верх) -->
+        <rect x="94" y="35" width="12" height="18" rx="3" fill="#0a1840" stroke="#00d4ff" stroke-width="0.8"/>
+        <circle cx="100" cy="32" r="4" fill="#0a1840" stroke="#00d4ff" stroke-width="0.8"/>
+        <!-- Двигатель (низ) -->
+        <ellipse cx="100" cy="152" rx="12" ry="4" fill="#081230" stroke="#00d4ff" stroke-width="0.8"/>
+        <!-- Пламя -->
+        <ellipse cx="100" cy="160" rx="6" ry="14" fill="url(#flame)" opacity="0.7">
+          <animate attributeName="ry" values="14;18;14" dur="0.3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.7;1;0.7" dur="0.3s" repeatCount="indefinite"/>
+        </ellipse>
+        <defs>
+          <radialGradient id="flame" cx="50%" cy="0%" r="100%">
+            <stop offset="0%" stop-color="#00d4ff"/>
+            <stop offset="50%" stop-color="#00ff88"/>
+            <stop offset="100%" stop-color="transparent"/>
+          </radialGradient>
+        </defs>
+        <!-- Фитотрон (зелёное свечение в модуле) -->
+        <rect x="90" y="120" width="20" height="16" rx="2" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="0.6"/>
+        <text x="100" y="131" font-size="7" fill="#00ff88" text-anchor="middle" font-family="sans-serif">🌿</text>
+        <!-- Антенна -->
+        <line x1="100" y1="28" x2="100" y2="14" stroke="#00d4ff" stroke-width="1"/>
+        <circle cx="100" cy="12" r="2.5" fill="#00d4ff">
+          <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+
+    <div class="intro-badge">🛸 Научный симулятор · v3.0</div>
+
+    <div class="intro-title">БИОС-3</div>
+    <div class="intro-subtitle">Космическая экосистема</div>
+
+    <div class="intro-desc">
+      Управляй замкнутой биосферой орбитальной станции.<br>
+      Выживи 14 дней — докажи, что готов к большой науке!
+    </div>
+
+    <!-- Баннер кафедры биофизики -->
+    <div class="dept-intro-card">
+      <div class="dept-logo-row">
+        <span class="dept-logo-icon">🔬</span>
+        <span class="dept-name">Кафедра биофизики</span>
+        <span class="dept-logo-icon">🧬</span>
+      </div>
+      <div class="dept-sub">
+        Институт фундаментальной биологии и биотехнологии<br>
+        <strong>Сибирский федеральный университет</strong><br>
+        Создано при поддержке ИБФ СО РАН
+      </div>
+    </div>
+
+    <button id="btn-go" class="btn-go-pulse" onclick="startGame()">🚀 ПОЕХАЛИ!</button>
+    <div class="intro-hint">⏱ Все стартуют вместе · Побеждает самый быстрый</div>
+  </div>
+</div>
+
+<!-- ████████████████ GAME SCREEN ████████████████ -->
+<div id="game" class="screen hidden">
+  <div class="topbar">
+    <div class="tb-title">🛸 БИОС-3</div>
+    <div class="tb-actions" id="tb-actions">🎯 3/3</div>
+    <div class="tb-day" id="tb-day">День 0 / 14</div>
+    <div class="tb-timer" id="tb-timer">⏱ 00:00</div>
+  </div>
+
+  <div class="deg-bar-wrap">
+    <div class="deg-bar-label">
+      <span>⚙️ Состояние систем</span>
+      <span id="deg-label-text">НОРМА</span>
+    </div>
+    <div class="deg-bar-track">
+      <div class="deg-bar-fill" id="deg-fill" style="width:100%;background-position:100% 0%"></div>
+    </div>
+  </div>
+
+  <div class="resources-grid" id="res-grid"></div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">📈 Динамика экосистемы
+      <select id="chart-select" onchange="updateChart()">
+        <option value="all">Все</option>
+        <option value="oxygen">Кислород</option>
+        <option value="co2">CO₂</option>
+        <option value="water">Вода</option>
+        <option value="food">Пища</option>
+        <option value="energy">Энергия</option>
+        <option value="plant">Биомасса</option>
+      </select>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="game-chart" height="130"></canvas>
+    </div>
+  </div>
+
+  <div class="section-title">🔬 ЭКСПЕРИМЕНТЫ <span id="actions-left" style="color:var(--purple)">(3 осталось)</span></div>
+  <div class="actions-grid" id="actions-grid"></div>
+
+  <div class="next-day-wrap">
+    <button id="btn-next" onclick="nextDay(this, event)">➡ СЛЕДУЮЩИЙ ДЕНЬ</button>
+  </div>
+
+  <div class="section-title">📡 ФАКТЫ О БИОС-3</div>
+  <div class="facts-section">
+    <div class="facts-card">
+      <div class="fact-tag"><div class="fact-dot"></div>Научный факт</div>
+      <div class="fact-text" id="fact-text"></div>
+      <div class="fact-nav">
+        <button class="fact-nav-btn" onclick="prevFact()">‹</button>
+        <button class="fact-nav-btn" onclick="nextFact()">›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">📝 Журнал</div>
+  <div class="log-section"><div class="log-box" id="log-box"></div></div>
+  <div class="spacer"></div>
+</div>
+
+<!-- ████████████████ VICTORY SCREEN ████████████████ -->
+<div id="win" class="screen end-screen hidden">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <div class="end-anim" id="win-emoji">🏆</div>
+  <div class="end-title win">МИССИЯ<br>ВЫПОЛНЕНА!</div>
+  <div class="end-label">Ваше время</div>
+  <div class="end-time" id="win-time">00:00</div>
+  <div class="end-msg">Вы создали стабильную замкнутую экосистему!<br>Экипаж возвращается на Землю героями 🚀</div>
+  <div class="score-card" id="win-scores"></div>
+
+  <div class="dept-banner">
+    <div class="dept-banner-title">🎓 Кафедра биофизики СФУ</div>
+    <div class="dept-banner-text">
+      Хочешь управлять <strong style="color:var(--green)">настоящими</strong> экосистемами?<br>
+      Приходи к нам на <strong style="color:var(--cyan)">кафедру биофизики</strong> ИФБиБТ СФУ!<br>
+      <span style="color:var(--muted);font-size:10px">Совместно с ИБФ СО РАН · Красноярск</span>
+    </div>
+  </div>
+
+  <div style="max-width:320px;margin:0 auto;font-size:12px;color:var(--muted);line-height:1.7;padding:0 10px">
+    Скажи ведущему своё время — самый быстрый получает приз! 🎁
+  </div>
+  <button class="btn-restart" onclick="restartGame()">🔄 Ещё раз</button>
+</div>
+
+<!-- ████████████████ DEFEAT SCREEN ████████████████ -->
+<div id="lose" class="screen end-screen hidden">
+  <div class="end-anim">💥</div>
+  <div class="end-title lose">МИССИЯ<br>ПРОВАЛЕНА</div>
+  <div class="end-msg">Критические проблемы:</div>
+  <div class="end-issues" id="lose-issues"></div>
+
+  <div class="dept-banner">
+    <div class="dept-banner-title">🎓 Совет от учёных БИОС-3</div>
+    <div class="dept-banner-text">
+      Не получилось? Не беда!<br>
+      Поступай на <strong style="color:var(--cyan)">кафедру биофизики</strong> ИФБиБТ СФУ —<br>
+      научишься управлять <strong style="color:var(--green)">настоящими</strong> замкнутыми экосистемами! 🌿<br>
+      <span style="color:var(--muted);font-size:10px">Совместно с ИБФ СО РАН · Красноярск</span>
+    </div>
+  </div>
+
+  <div style="max-width:300px;font-size:11px;color:var(--muted);line-height:1.7">
+    Попробуй активнее использовать эксперименты с первых дней. Помни: у тебя только 3 действия в день!
+  </div>
+  <button class="btn-restart" onclick="restartGame()">🔄 Попробовать снова</button>
+</div>
+
+<div id="toast-container"></div>
+
+<div id="popup-overlay" class="hidden">
+  <div class="popup-card">
+    <div class="popup-icon" id="popup-icon"></div>
+    <div class="popup-title" id="popup-title"></div>
+    <div class="popup-body" id="popup-body"></div>
+    <div class="popup-btns">
+      <button class="popup-btn secondary" onclick="hidePopup()">Закрыть</button>
+      <button class="popup-btn primary" id="popup-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// NEBULA + STARS
+// ═══════════════════════════════════════════════════════════
+(function(){
+  const c=document.getElementById('stars-canvas'),x=c.getContext('2d');let s=[];
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;
+    s=Array.from({length:140},()=>({x:Math.random()*c.width,y:Math.random()*c.height,
+      r:Math.random()*1.8+0.2,a:Math.random(),da:(Math.random()-0.5)*0.008,
+      sp:Math.random()*0.15+0.03,
+      col:Math.random()>0.85?'180,220,255':Math.random()>0.7?'136,255,200':'200,220,255'
+    }))}
+  function draw(){x.clearRect(0,0,c.width,c.height);
+    // Nebula gradient
+    const g=x.createRadialGradient(c.width*0.3,c.height*0.4,0,c.width*0.3,c.height*0.4,c.width*0.7);
+    g.addColorStop(0,'rgba(10,20,80,0.15)');g.addColorStop(0.5,'rgba(40,10,60,0.08)');g.addColorStop(1,'transparent');
+    x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
+    s.forEach(st=>{st.a+=st.da;if(st.a<=0||st.a>=1)st.da*=-1;
+      st.y+=st.sp;if(st.y>c.height){st.y=0;st.x=Math.random()*c.width}
+      x.beginPath();x.arc(st.x,st.y,st.r,0,Math.PI*2);
+      x.fillStyle=`rgba(${st.col},${st.a})`;x.fill()});
+    requestAnimationFrame(draw)}
+  resize();draw();window.addEventListener('resize',resize);
+})();
+
+// ═══════════════════════════════════════════════════════════
+// GAME STATE & CONSTANTS (v3.0 — все 7 фиксов)
+// ═══════════════════════════════════════════════════════════
+const CONSTS = {
+  photosynthesis_rate: 0.45,     // FIX-2: было 0.18
+  human_oxygen: 0.84,
+  human_water: 2.5,
+  human_food: 0.8,
+  plant_transpiration: 0.08,     // FIX-1: транспирация от биомассы
+  co2_assimilation: 1.375,       // стехиометрия 44/32
+  co2_respiration_ratio: 1.375,  // FIX-4: для дыхания растений
+  plant_growth: 0.05,
+};
+const CREW=3, MAX_DAYS=14, MAX_ACTIONS=3; // FIX-6: лимит действий
+
+let G={};
+let timer_interval=null, startTime=null, factIdx=0, chart=null, actionsToday=0;
+
+const FACTS=[
+  "🌿 БИОС-3 — первая в мире замкнутая биосистема с людьми. Три учёных прожили в ней 180 суток!",
+  "💡 Фотосинтез: 6CO₂ + 6H₂O + свет → C₆H₁₂O₆ + 6O₂. В БИОС-3 именно растения давали весь кислород.",
+  "🔄 В БИОС-3 достигли 85–95% рециркуляции воды — как настоящий круговорот воды в природе!",
+  "👨‍🚀 Один человек потребляет ~0,84 кг O₂ и выделяет ~1,0 кг CO₂ в сутки.",
+  "🌾 В БИОС-3 выращивали пшеницу, сою, морковь, свёклу — 20 видов растений на 63 м².",
+  "⚖️ При 1% CO₂ — головная боль. При 5% — потеря сознания. Равновесие критично!",
+  "🔬 Хлорелла удваивает биомассу за сутки. Идеальный космический «завод» кислорода.",
+  "🛸 Эксперимент проходил в Красноярске (ИБФ СО РАН), 1972–1984. Мировой рекорд!",
+  "💧 Вода в замкнутой системе не теряется: испаряется → конденсируется → возвращается.",
+  "🚀 Данные БИОС-3 использует NASA для систем жизнеобеспечения марсианских экспедиций.",
+  "🎓 Кафедра биофизики СФУ продолжает исследования замкнутых экосистем для космоса!",
+];
+
+const RES_CONFIG=[
+  {key:'oxygen',label:'O₂',icon:'💨',color:'#00d4ff',max:300,critLow:30,critHigh:null,unit:'кг'},
+  {key:'co2',label:'CO₂',icon:'🌫️',color:'#ff9500',max:200,critLow:null,critHigh:130,unit:'кг'},
+  {key:'water',label:'Вода',icon:'💧',color:'#3498db',max:500,critLow:30,critHigh:null,unit:'л'},
+  {key:'food',label:'Пища',icon:'🍎',color:'#ff9500',max:100,critLow:6,critHigh:null,unit:'кг'},
+  {key:'energy',label:'Энергия',icon:'⚡',color:'#ffe033',max:300,critLow:12,critHigh:null,unit:'кВт'},
+  {key:'plant',label:'Биомасса',icon:'🌿',color:'#00ff88',max:300,critLow:10,critHigh:null,unit:'кг'},
+  {key:'waste',label:'Отходы',icon:'♻️',color:'#b44eff',max:100,critLow:null,critHigh:85,unit:'кг'},
+  {key:'happy',label:'Экипаж',icon:'😊',color:'#ff3b5c',max:100,critLow:22,critHigh:null,unit:'%'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// ACTIONS (FIX-5: солнечные панели с кулдауном, FIX-6: лимит)
+// ═══════════════════════════════════════════════════════════
+const ACTIONS=[
+  { id:'chlorella',icon:'🌱',name:'Посадить хлореллу',color:'btn-green',
+    cost:'−20 л воды, −10 кВт',
+    check:g=>g.water>=20&&g.energy>=10,
+    exec:g=>{g.plant+=20;g.water-=20;g.energy-=10;return '🌱 Хлорелла +20 кг биомассы'}},
+  { id:'photosyn',icon:'💡',name:'Усилить фотосинтез',color:'btn-cyan',
+    cost:'−20 кВт, −10 кг CO₂',
+    check:g=>g.energy>=20&&g.co2>=10,
+    exec:g=>{g.oxygen+=15;g.co2-=10;g.energy-=20;
+      g.photoMod=Math.min(1,g.photoMod+0.1);return '💡 Фотосинтез +15 кг O₂'}},
+  { id:'recycle',icon:'🔄',name:'Рециркуляция воды',color:'btn-purple',
+    cost:'−25 кВт, ≥10 кг отходов',
+    check:g=>g.energy>=25&&g.waste>=10,
+    exec:g=>{const r=Math.min(120,g.waste*0.8*g.recyclerEff);
+      g.water+=r;g.waste=Math.max(0,g.waste-r*0.6);g.energy-=25;
+      return `🔄 Рециркуляция +${r.toFixed(1)} л воды`}},
+  { id:'harvest',icon:'🌾',name:'Собрать урожай',color:'btn-orange',
+    cost:'−20 кг биомассы',
+    check:g=>g.plant>=20,
+    exec:g=>{const f=12*(g.happy/100);g.food+=f;g.plant-=20;
+      return `🌾 Урожай +${f.toFixed(1)} кг пищи`}},
+  { id:'maintain',icon:'🛠️',name:'Обслуживание систем',color:'btn-red',
+    cost:'−15 кВт',
+    check:g=>g.energy>=15,
+    exec:g=>{g.photoMod=Math.min(1,g.photoMod+0.18);g.filterMod=Math.min(1,g.filterMod+0.18);
+      g.energy-=15;return '🛠️ Системы обслужены, КПД восстановлен'}},
+  { id:'filter',icon:'🔬',name:'Улучшить фильтры',color:'btn-cyan',
+    cost:'−20 кВт',
+    check:g=>g.energy>=20,
+    exec:g=>{g.filterEff=Math.min(0.95,g.filterEff+0.08);g.filterMod=Math.min(1,g.filterMod+0.15);
+      g.energy-=20;return `🔬 Фильтры ${(g.filterEff*100).toFixed(0)}%`}},
+  { id:'solar',icon:'☀️',name:'Солнечные панели',color:'btn-yellow',
+    cost:'−5 кВт (кулдаун 2д)',   // FIX-5
+    check:g=>g.energy>=5&&g.solarCD<=0,
+    exec:g=>{g.energy-=5;const b=Math.floor(Math.random()*26)+25;
+      g.energy=Math.min(300,g.energy+b);g.solarCD=2;
+      return `☀️ Панели настроены +${b} кВт (след. через 2 дня)`}},
+  { id:'analyze',icon:'🧪',name:'Анализ проб',color:'btn-purple',
+    cost:'−10 кВт',
+    check:g=>g.energy>=10,
+    exec:g=>{const p=Math.floor(Math.random()*6)+3;g.research+=p;g.energy-=10;
+      return `🧪 Анализ +${p} научных очков`}},
+];
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function initState(){
+  G={day:0,oxygen:200,co2:50,water:280,food:25,energy:150,plant:100,waste:0,happy:100,
+    research:0,photoMod:1.0,filterMod:1.0,filterEff:0.80,recyclerEff:0.75,
+    solarCD:0,over:false,
+    history:{days:[0],oxygen:[200],co2:[50],water:[280],food:[25],energy:[150],plant:[100]}
+  };
+  actionsToday=0;
+}
+
+function buildResourceGrid(){
+  document.getElementById('res-grid').innerHTML=RES_CONFIG.map(r=>`
+    <div class="res-card" id="rc-${r.key}">
+      <div class="res-icon">${r.icon}</div>
+      <div class="res-value" id="rv-${r.key}" style="color:${r.color}">—</div>
+      <div class="res-label">${r.label}</div>
+      <div class="res-minibar"><div class="res-minibar-fill" id="rb-${r.key}" style="background:${r.color};width:100%"></div></div>
+    </div>`).join('');
+}
+
+function buildActions(){
+  document.getElementById('actions-grid').innerHTML=ACTIONS.map(a=>`
+    <button class="act-btn ${a.color}" id="ab-${a.id}" onclick="doAction('${a.id}',this,event)">
+      <span class="act-icon">${a.icon}</span>
+      <span class="act-text">
+        <span class="act-name">${a.name}</span>
+        <span class="act-cost">${a.cost}</span>
+      </span>
+    </button>`).join('');
+}
+
+function initChart(){
+  if(chart){chart.destroy();chart=null}
+  const old=document.getElementById('game-chart'),par=old.parentNode;
+  const nw=document.createElement('canvas');nw.id='game-chart';nw.height=130;
+  par.replaceChild(nw,old);
+  chart=new Chart(nw.getContext('2d'),{
+    type:'line',
+    data:{labels:[0],datasets:[
+      {label:'O₂',data:[200],borderColor:'#00d4ff',tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#00d4ff'},
+      {label:'CO₂',data:[50],borderColor:'#ff9500',tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#ff9500'},
+      {label:'Вода/10',data:[28],borderColor:'#3498db',tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#3498db',borderDash:[4,3]},
+      {label:'Пища×2',data:[50],borderColor:'#ff9f43',tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#ff9f43',borderDash:[4,3]},
+      {label:'Энергия',data:[150],borderColor:'#ffe033',tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#ffe033'},
+      {label:'Биомасса',data:[100],borderColor:'#00ff88',tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#00ff88'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:true,animation:{duration:300},
+      plugins:{legend:{display:true,position:'top',labels:{color:'#5a7090',font:{size:9},boxWidth:10,padding:8}}},
+      scales:{x:{ticks:{color:'#5a7090',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},
+              y:{ticks:{color:'#5a7090',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+}
+
+function updateChart(){
+  if(!chart)return;
+  const sel=document.getElementById('chart-select').value,h=G.history;if(!h)return;
+  chart.data.labels=h.days;
+  if(sel==='all'){
+    chart.data.datasets[0].data=h.oxygen;chart.data.datasets[1].data=h.co2;
+    chart.data.datasets[2].data=h.water.map(v=>v/10);chart.data.datasets[3].data=h.food.map(v=>v*2);
+    chart.data.datasets[4].data=h.energy;chart.data.datasets[5].data=h.plant;
+    chart.data.datasets.forEach(d=>d.hidden=false);
+  }else{
+    const map={oxygen:0,co2:1,water:2,food:3,energy:4,plant:5};
+    chart.data.datasets.forEach((d,i)=>d.hidden=i!==map[sel]);
+    if(sel==='water')chart.data.datasets[2].data=h.water.map(v=>v/10);
+    else if(sel==='food')chart.data.datasets[3].data=h.food.map(v=>v*2);
+  }
+  chart.update('none');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DISPLAY UPDATE
+// ═══════════════════════════════════════════════════════════
+function updateDisplay(){
+  const vals={oxygen:G.oxygen,co2:G.co2,water:G.water,food:G.food,
+    energy:G.energy,plant:G.plant,waste:G.waste,happy:G.happy};
+  RES_CONFIG.forEach(r=>{
+    const v=vals[r.key],vEl=document.getElementById(`rv-${r.key}`),
+      bEl=document.getElementById(`rb-${r.key}`),cEl=document.getElementById(`rc-${r.key}`);
+    bEl.style.width=Math.max(0,Math.min(100,(v/r.max)*100))+'%';
+    vEl.textContent=r.unit==='%'?v.toFixed(0)+'%':r.unit==='кг'?v.toFixed(1)+' кг':
+      r.unit==='л'?v.toFixed(1)+' л':v.toFixed(1);
+    let cls='';
+    if(r.critLow!==null&&v<=r.critLow*1.5)cls='warning';
+    if(r.critLow!==null&&v<=r.critLow)cls='danger';
+    if(r.critHigh!==null&&v>=r.critHigh*0.85)cls='warning';
+    if(r.critHigh!==null&&v>=r.critHigh)cls='danger';
+    cEl.className='res-card'+(cls?' '+cls:'');
+    vEl.style.color=cls==='danger'?'var(--red)':cls==='warning'?'var(--orange)':r.color;
+  });
+
+  const avg=(G.photoMod+G.filterMod)/2,pct=avg*100;
+  const fillEl=document.getElementById('deg-fill'),labEl=document.getElementById('deg-label-text');
+  fillEl.style.width=pct+'%';fillEl.style.backgroundPosition=((1-avg)*100)+'% 0%';
+  if(avg>=0.85){labEl.textContent='✅ НОРМА';labEl.style.color='var(--green)'}
+  else if(avg>=0.65){labEl.textContent='⚠️ ВНИМАНИЕ';labEl.style.color='var(--orange)'}
+  else if(avg>=0.45){labEl.textContent='🔴 ДЕГРАДАЦИЯ';labEl.style.color='var(--red)'}
+  else{labEl.textContent='💀 АВАРИЯ!';labEl.style.color='var(--red)'}
+
+  document.getElementById('tb-day').textContent=`День ${G.day} / ${MAX_DAYS}`;
+  const left=MAX_ACTIONS-actionsToday;
+  document.getElementById('tb-actions').textContent=`🎯 ${left}/${MAX_ACTIONS}`;
+  document.getElementById('tb-actions').style.color=left===0?'var(--red)':'var(--purple)';
+  document.getElementById('actions-left').textContent=`(${left} осталось)`;
+
+  ACTIONS.forEach(a=>{
+    const btn=document.getElementById(`ab-${a.id}`);if(!btn)return;
+    const canDo=!G.over&&a.check(G)&&actionsToday<MAX_ACTIONS;
+    btn.style.opacity=canDo?'1':'0.35';
+    btn.disabled=G.over;
+  });
+  const nextBtn=document.getElementById('btn-next');
+  if(G.over){nextBtn.classList.add('disabled');nextBtn.disabled=true}
+  else{nextBtn.classList.remove('disabled');nextBtn.disabled=false}
+  updateChart();
+}
+
+// ═══════════════════════════════════════════════════════════
+// FACTS, LOG, TOAST, POPUP, RIPPLE, PARTICLES
+// ═══════════════════════════════════════════════════════════
+function showFact(){const el=document.getElementById('fact-text');el.style.opacity=0;
+  setTimeout(()=>{el.textContent=FACTS[factIdx];el.style.opacity=1},200)}
+function nextFact(){factIdx=(factIdx+1)%FACTS.length;showFact()}
+function prevFact(){factIdx=(factIdx-1+FACTS.length)%FACTS.length;showFact()}
+
+function log(msg,type=''){const box=document.getElementById('log-box'),d=document.createElement('div');
+  d.className='log-entry '+type;d.textContent=`[День ${G.day}] ${msg}`;box.appendChild(d);box.scrollTop=box.scrollHeight}
+
+function showToast(msg,type='success'){const c=document.getElementById('toast-container'),
+  t=document.createElement('div');t.className=`toast ${type}`;t.textContent=msg;
+  c.appendChild(t);setTimeout(()=>t.remove(),2100)}
+
+function showPopup(icon,title,body,onOk){
+  document.getElementById('popup-icon').textContent=icon;
+  document.getElementById('popup-title').textContent=title;
+  document.getElementById('popup-body').textContent=body;
+  document.getElementById('popup-ok').onclick=()=>{hidePopup();onOk&&onOk()};
+  document.getElementById('popup-overlay').classList.remove('hidden')}
+function hidePopup(){document.getElementById('popup-overlay').classList.add('hidden')}
+
+function addRipple(btn,evt){const rect=btn.getBoundingClientRect(),r=document.createElement('span');
+  r.className='ripple-effect';const d=Math.max(btn.clientWidth,btn.clientHeight);
+  r.style.cssText=`width:${d}px;height:${d}px;left:${evt.clientX-rect.left-d/2}px;top:${evt.clientY-rect.top-d/2}px`;
+  btn.appendChild(r);setTimeout(()=>r.remove(),600)}
+
+function spawnParticles(x,y,color){for(let i=0;i<8;i++){const p=document.createElement('div');
+  p.className='particle';const tx=(Math.random()-0.5)*80+'px',ty=(Math.random()-0.5)*80+'px';
+  p.style.cssText=`left:${x}px;top:${y}px;width:6px;height:6px;background:${color};--tx:${tx};--ty:${ty};`;
+  document.body.appendChild(p);setTimeout(()=>p.remove(),700)}}
+
+// ═══════════════════════════════════════════════════════════
+// ACTION EXECUTION (FIX-6: лимит 3 действия в день)
+// ═══════════════════════════════════════════════════════════
+function doAction(id,btn,evt){
+  if(G.over)return;
+  if(actionsToday>=MAX_ACTIONS){
+    showToast(`🎯 Лимит ${MAX_ACTIONS} действия в день! Жми «Следующий день»`,'info');return}
+  const act=ACTIONS.find(a=>a.id===id);if(!act)return;
+  if(!act.check(G)){
+    if(id==='solar'&&G.solarCD>0)showToast(`⏳ Панели доступны через ${G.solarCD} дн.`,'info');
+    else showToast('⚠️ Недостаточно ресурсов!','warn');return}
+  addRipple(btn,evt);
+  const msg=act.exec(G);actionsToday++;clamp();
+  const rect=btn.getBoundingClientRect();
+  spawnParticles(rect.left+rect.width/2,rect.top+rect.height/2,'#00ff88');
+  showToast(msg,'success');log(msg,'sci');updateDisplay();
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEXT DAY (v3.0 — все 7 фиксов)
+// ═══════════════════════════════════════════════════════════
+function nextDay(btn,evt){
+  if(G.over)return;addRipple(btn,evt);
+  if(G.day>=MAX_DAYS)return; // guard: уже отыграли все дни
+  G.day++;
+
+  // FIX-5: кулдаун солнечных панелей
+  if(G.solarCD>0)G.solarCD--;
+
+  // Деградация
+  if(actionsToday===0){
+    G.photoMod=Math.max(0.3,G.photoMod-0.07);G.filterMod=Math.max(0.3,G.filterMod-0.05);
+    log('⚠️ Системы не обслуживались — КПД снизился!','warn');
+    showToast('⚠️ Обслуживайте системы!','warn');
+  }else{G.photoMod=Math.max(0.3,G.photoMod-0.01);G.filterMod=Math.max(0.3,G.filterMod-0.01)}
+  actionsToday=0;
+
+  // FIX-2: Фотосинтез (k_ph = 0.045)
+  const o2prod=G.plant*CONSTS.photosynthesis_rate*0.1*G.photoMod;
+  const co2cons=o2prod*CONSTS.co2_assimilation;
+  G.oxygen+=o2prod;G.co2-=Math.min(co2cons,G.co2*0.8);
+
+  // FIX-4: Дыхание (стехиометрия CO₂ растений)
+  const pResp=G.plant*0.02,cResp=CREW*1.0;
+  G.oxygen-=(pResp+cResp);
+  G.co2+=pResp*CONSTS.co2_respiration_ratio+cResp;
+
+  // FIX-1: Потребление воды (транспирация от биомассы)
+  const plantTransp=G.plant*CONSTS.plant_transpiration;
+  G.water-=CREW*CONSTS.human_water+plantTransp;
+  G.food-=CREW*CONSTS.human_food;G.energy-=CREW*1.5;
+
+  // FIX-8: базовая солнечная генерация (+12 кВт/день, как в реальном БИОС-3)
+  G.energy=Math.min(300,G.energy+12);
+
+  // FIX-3: Рост растений (зависит от CO₂, не от O₂)
+  if(G.water>0&&G.co2>0){
+    const growth=G.plant*CONSTS.plant_growth*(G.water/300)*(G.co2/100)*G.photoMod;
+    G.plant+=growth;
+  }
+
+  // Отходы
+  G.waste+=CREW*0.5+G.plant*0.01;
+
+  // FIX-7: Авторециркуляция (выровнена с Python v3.0)
+  if(G.energy>20&&G.waste>5){
+    const rec=G.waste*0.12*G.recyclerEff;G.water+=rec;G.waste*=0.92;G.energy-=3}
+
+  // Фильтрация
+  if(G.energy>10){
+    const filt=Math.min(3.5,G.co2*0.07*G.filterEff*G.filterMod);G.co2-=filt;G.energy-=2}
+
+  // Счастье
+  let dh=0;
+  if(G.oxygen>150&&G.co2<80)dh+=Math.random()>0.5?1:0;
+  if(G.food>15)dh+=Math.random()>0.6?1:0;
+  if(G.oxygen<50)dh-=Math.floor(Math.random()*3)+2;
+  if(G.co2>100)dh-=Math.floor(Math.random()*3)+1;
+  if(G.food<10)dh-=Math.floor(Math.random()*3)+2;
+  if(G.photoMod<0.5)dh-=Math.floor(Math.random()*2)+1;
+  G.happy=Math.max(0,Math.min(100,G.happy+dh));
+
+  if(Math.random()<0.25)randomEvent();
+  clamp();
+
+  G.history.days.push(G.day);G.history.oxygen.push(G.oxygen);G.history.co2.push(G.co2);
+  G.history.water.push(G.water);G.history.food.push(G.food);
+  G.history.energy.push(G.energy);G.history.plant.push(G.plant);
+
+  if(G.day%3===0){log('Автомониторинг завершён.','sci');factIdx=(factIdx+1)%FACTS.length;showFact()}
+  updateDisplay();
+
+  // День 14 достигнут → ПОБЕДА (экипаж дожил!)
+  if(G.day>=MAX_DAYS){endGame(true);return}
+
+  // Проверка поражения (только если ещё не день 14)
+  const issues=checkGameOver();
+  if(issues.length>0){G.over=true;endGame(false,issues);return}
+}
+
+function clamp(){
+  G.oxygen=Math.max(0,G.oxygen);G.co2=Math.max(0,Math.min(200,G.co2));
+  G.water=Math.max(0,G.water);G.food=Math.max(0,G.food);
+  G.energy=Math.max(0,Math.min(300,G.energy));G.plant=Math.max(0,Math.min(300,G.plant));
+  G.waste=Math.max(0,Math.min(100,G.waste));G.happy=Math.max(0,Math.min(100,G.happy));
+}
+
+function checkGameOver(){
+  const i=[];
+  if(G.oxygen<=10)i.push('💨 Критически мало кислорода (≤10 кг)');
+  if(G.water<=20)i.push('💧 Критически мало воды (≤20 л)');
+  if(G.food<=5)i.push('🍎 Критически мало пищи (≤5 кг)');
+  if(G.energy<=10)i.push('⚡ Критически мало энергии (≤10 кВт)');
+  if(G.co2>=150)i.push('🌫️ Критический уровень CO₂ (≥150 кг)');
+  if(G.happy<=20)i.push('😞 Экипаж в критическом состоянии (≤20%)');
+  return i;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RANDOM EVENTS
+// ═══════════════════════════════════════════════════════════
+function randomEvent(){
+  const events=[
+    {msg:'☀️ Солнечная вспышка! +20 кВт',fn:g=>{g.energy=Math.min(300,g.energy+20)}},
+    {msg:'🌊 Ледяная конденсация! +35 л воды',fn:g=>{g.water+=35}},
+    {msg:'🦠 Вспышка роста водорослей! +20 кг',fn:g=>{g.plant=Math.min(300,g.plant+20)}},
+    {msg:'💥 Микроутечка O₂: −20 кг',fn:g=>{g.oxygen=Math.max(0,g.oxygen-20)}},
+    {msg:'🌪️ Пылевая буря: −15 кВт',fn:g=>{g.energy=Math.max(0,g.energy-15)}},
+    {msg:'🎉 Экипаж воодушевлён! +10%',fn:g=>{g.happy=Math.min(100,g.happy+10)}},
+    {msg:'🔧 Поломка рециркулятора!',fn:g=>{g.recyclerEff=Math.max(0.3,g.recyclerEff-0.1)}},
+    {msg:'🌿 Обильный полив!',fn:g=>{g.photoMod=Math.min(1,g.photoMod+0.05)}},
+  ];
+  const ev=events[Math.floor(Math.random()*events.length)];ev.fn(G);
+  log('📢 '+ev.msg,'event');showToast(ev.msg,Math.random()>0.4?'success':'warn');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════════════
+function startTimer(){startTime=Date.now();
+  timer_interval=setInterval(()=>{const s=Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('tb-timer').textContent=
+      `⏱ ${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;},500)}
+function stopTimer(){clearInterval(timer_interval);const s=Math.floor((Date.now()-startTime)/1000);
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
+
+// ═══════════════════════════════════════════════════════════
+// START / END
+// ═══════════════════════════════════════════════════════════
+function startGame(){
+  clearInterval(timer_interval);timer_interval=null;
+  const btn=document.getElementById('btn-go');btn.textContent='🚀 Старт!';btn.disabled=true;
+  setTimeout(()=>{
+    document.getElementById('intro').classList.add('hidden');
+    document.getElementById('game').classList.remove('hidden');
+    initState();buildResourceGrid();buildActions();
+    const nb=document.getElementById('btn-next');nb.disabled=false;nb.classList.remove('disabled');
+    document.getElementById('tb-timer').textContent='⏱ 00:00';
+    document.getElementById('tb-day').textContent='День 0 / 14';
+    document.getElementById('log-box').innerHTML='';
+    document.getElementById('toast-container').innerHTML='';
+    document.getElementById('game').scrollTop=0;
+    initChart();showFact();updateDisplay();startTimer();
+    log('Миссия начата! Экипаж: 3 человека. Удачи! 🚀','sci');
+  },400);
+}
+
+function endGame(victory,issues){
+  G.over=true;const time=stopTimer();updateDisplay();
+  setTimeout(()=>{
+    document.getElementById('game').classList.add('hidden');
+    if(victory){
+      document.getElementById('win').classList.remove('hidden');
+      document.getElementById('win-time').textContent=time;
+      let sc=Math.min(100,G.oxygen/200*100)*0.2+Math.max(0,100-G.co2/200*100)*0.15
+        +Math.min(100,G.water/2.8)*0.10+Math.min(100,G.food*4)*0.10
+        +Math.min(100,G.energy/1.5)*0.10+G.happy*0.15
+        +Math.min(100,G.plant)*0.05+Math.min(50,G.research*0.5);
+      sc=Math.round(Math.min(100,sc));
+      document.getElementById('win-scores').innerHTML=`
+        <div class="score-item"><div class="score-val">${sc}%</div><div class="score-lbl">Рейтинг</div></div>
+        <div class="score-item"><div class="score-val">${G.research}</div><div class="score-lbl">Очков науки</div></div>
+        <div class="score-item"><div class="score-val">${time}</div><div class="score-lbl">Время</div></div>
+        <div class="score-item"><div class="score-val">${G.day}/14</div><div class="score-lbl">Дней</div></div>`;
+      setTimeout(()=>launchConfetti(),100);
+      const ts=parseInt(time.split(':')[0])*60+parseInt(time.split(':')[1]);
+      document.getElementById('win-emoji').textContent=ts<180?'🥇':ts<300?'🏆':'🎖️';
+    }else{
+      document.getElementById('lose').classList.remove('hidden');
+      document.getElementById('lose-issues').innerHTML=
+        issues.map(i=>`<div class="end-issue-item"><span>⚠️</span><span>${i}</span></div>`).join('');
+    }
+  },300);
+}
+
+function restartGame(){
+  clearInterval(timer_interval);timer_interval=null;
+  document.getElementById('win').classList.add('hidden');
+  document.getElementById('lose').classList.add('hidden');
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('confetti-wrap').innerHTML='';
+  document.getElementById('toast-container').innerHTML='';
+  document.getElementById('intro').classList.remove('hidden');
+  const btn=document.getElementById('btn-go');btn.textContent='🚀 ПОЕХАЛИ!';btn.disabled=false;
+  const nb=document.getElementById('btn-next');if(nb){nb.disabled=false;nb.classList.remove('disabled')}
+  factIdx=0;G={};
+}
+
+function launchConfetti(){const w=document.getElementById('confetti-wrap'),
+  colors=['#00ff88','#00d4ff','#ffe033','#ff9500','#b44eff','#ff3b5c'];
+  for(let i=0;i<60;i++){setTimeout(()=>{const p=document.createElement('div');
+    p.className='confetti-piece';p.style.cssText=`left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;
+      transform:rotate(${Math.random()*360}deg);opacity:${0.7+Math.random()*0.3};`;
+    w.appendChild(p);setTimeout(()=>p.remove(),3500)},i*30)}}
+
+// Клавиатура (для ПК)
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='Enter'){
+    const gs=document.getElementById('game');
+    if(!gs.classList.contains('hidden')&&G&&G.over===false){
+      const btn=document.getElementById('btn-next');
+      if(!btn.disabled)nextDay(btn,{clientX:btn.getBoundingClientRect().left+btn.clientWidth/2,
+        clientY:btn.getBoundingClientRect().top});
+    }
+  }
+});
+</script>
+</body>
+</html>

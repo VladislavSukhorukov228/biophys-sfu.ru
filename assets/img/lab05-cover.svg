@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" aria-label="Биолюминесцентный микромир: травоядные, хищник и кристаллы субстрата">
+  <rect width="600" height="300" fill="#050914"/>
+  <defs>
+    <radialGradient id="gt" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3ee6c1" stop-opacity="0.55"/><stop offset="100%" stop-color="#3ee6c1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gc" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff7a6b" stop-opacity="0.6"/><stop offset="100%" stop-color="#ff7a6b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- кристаллы субстрата -->
+  <g fill="#e0b34a" opacity="0.9">
+    <path d="M95 235 l 9 -14 9 14 -9 14 Z"/>
+    <path d="M470 250 l 7 -11 7 11 -7 11 Z"/>
+    <path d="M240 60 l 6 -10 6 10 -6 10 Z" opacity="0.7"/>
+    <path d="M545 130 l 8 -12 8 12 -8 12 Z" opacity="0.8"/>
+  </g>
+  <!-- травоядные -->
+  <circle cx="170" cy="150" r="46" fill="url(#gt)"/>
+  <polygon points="170,128 189,139 189,161 170,172 151,161 151,139" fill="#0d3a33" stroke="#3ee6c1" stroke-width="2.5"/>
+  <circle cx="330" cy="90" r="34" fill="url(#gt)"/>
+  <polygon points="330,74 344,82 344,98 330,106 316,98 316,82" fill="#0d3a33" stroke="#3ee6c1" stroke-width="2"/>
+  <circle cx="285" cy="225" r="30" fill="url(#gt)"/>
+  <polygon points="285,211 297,218 297,232 285,239 273,232 273,218" fill="#0d3a33" stroke="#3ee6c1" stroke-width="2"/>
+  <!-- хищник преследует -->
+  <circle cx="455" cy="170" r="52" fill="url(#gc)"/>
+  <polygon points="455,144 477,157 477,183 455,196 433,183 433,157" fill="#3a0f12" stroke="#ff7a6b" stroke-width="3"/>
+  <path d="M415 185 C 380 200, 340 215, 310 222" stroke="#ff7a6b" stroke-width="2" stroke-dasharray="1 8" stroke-linecap="round" fill="none" opacity="0.8"/>
+</svg>

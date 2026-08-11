@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" aria-label="Фрагмент полевой карты с точками отбора проб">
+  <!-- палитра приложения «Точка отбора» -->
+  <rect width="600" height="300" fill="#F7F6F2"/>
+  <!-- горизонтали рельефа -->
+  <g fill="none" stroke="#DDD9CF" stroke-width="1.4">
+    <path d="M-20 60 C 120 30, 240 95, 380 55 S 560 20, 640 60"/>
+    <path d="M-20 110 C 120 78, 250 145, 390 102 S 565 68, 640 108"/>
+    <path d="M-20 250 C 130 220, 250 280, 400 244 S 570 214, 640 252"/>
+    <path d="M-20 288 C 130 262, 255 318, 405 284 S 575 256, 640 292"/>
+  </g>
+  <!-- река -->
+  <path d="M-20 200 C 90 150, 190 235, 300 185 S 500 120, 640 165"
+        fill="none" stroke="#2E7A8C" stroke-width="26" stroke-linecap="round" opacity="0.92"/>
+  <path d="M-20 200 C 90 150, 190 235, 300 185 S 500 120, 640 165"
+        fill="none" stroke="#1F5866" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
+  <!-- ось профиля -->
+  <path d="M60 258 L 210 172 L 372 210 L 540 96"
+        fill="none" stroke="#16303A" stroke-width="2" stroke-dasharray="7 6"/>
+  <!-- точки отбора -->
+  <g font-family="Georgia, serif" font-size="13" font-weight="bold" text-anchor="middle">
+    <g>
+      <circle cx="60" cy="258" r="11" fill="#E4572E" stroke="#F7F6F2" stroke-width="2.5"/>
+      <text x="60" y="262.5" fill="#fff">1</text>
+    </g>
+    <g>
+      <circle cx="210" cy="172" r="11" fill="#E4572E" stroke="#F7F6F2" stroke-width="2.5"/>
+      <text x="210" y="176.5" fill="#fff">2</text>
+    </g>
+    <g>
+      <circle cx="372" cy="210" r="11" fill="#6B7A5A" stroke="#F7F6F2" stroke-width="2.5"/>
+      <text x="372" y="214.5" fill="#fff">3</text>
+    </g>
+    <g>
+      <circle cx="540" cy="96" r="11" fill="#2E7A8C" stroke="#F7F6F2" stroke-width="2.5"/>
+      <text x="540" y="100.5" fill="#fff">4</text>
+    </g>
+  </g>
+  <!-- стрелка севера -->
+  <g transform="translate(556 40)">
+    <path d="M0 -18 L 6 8 L 0 3 L -6 8 Z" fill="#16303A"/>
+    <text x="0" y="24" font-family="Georgia, serif" font-size="13" font-weight="bold"
+          fill="#16303A" text-anchor="middle">N</text>
+  </g>
+  <!-- масштабная шкала -->
+  <g transform="translate(28 272)">
+    <rect x="0" y="0" width="30" height="6" fill="#16303A"/>
+    <rect x="30" y="0" width="30" height="6" fill="#fff" stroke="#16303A" stroke-width="1"/>
+    <rect x="60" y="0" width="30" height="6" fill="#16303A"/>
+    <text x="0" y="-5" font-family="Georgia, serif" font-size="10" fill="#16303A">0</text>
+    <text x="82" y="-5" font-family="Georgia, serif" font-size="10" fill="#16303A">300 м</text>
+  </g>
+</svg>

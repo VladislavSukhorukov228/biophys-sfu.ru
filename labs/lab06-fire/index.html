@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ЛР №6. Огненный фронт · Кафедра биофизики СФУ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="../../index.html">
+      <span class="uni">СФУ · ИФБиБТ</span>
+      <span class="dept">Кафедра биофизики</span>
+    </a>
+    <nav class="site-nav" aria-label="Основная навигация">
+      <a href="../../index.html">Главная</a>
+      <a href="../index.html" aria-current="page">Лабораторные работы</a>
+      <a href="../../index.html#contacts">Контакты</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Навигационная цепочка">
+      <a href="../../index.html">Главная</a> /
+      <a href="../index.html">Лабораторные работы</a> /
+      ЛР №6
+    </nav>
+  </div>
+
+  <section class="lab-page-head">
+    <div class="wrap">
+      <p class="eyebrow">Лабораторная работа №6 · Настольная (Python)</p>
+      <h1>Огненный фронт: перколяция и лесные пожары</h1>
+      <div class="meta-row">
+        <span>Формат: <b>настольная игра-лаборатория на Python (pygame)</b></span>
+        <span>Статус: <b>тестируется, методические указания готовятся</b></span>
+        <span>Модель: <b>клеточный автомат Бака–Ченя–Танга</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap two-col">
+      <div>
+        <div class="panel">
+          <h2>Цель работы</h2>
+          <p>Экспериментально исследовать перколяционный переход на модели распространения лесного пожара: найти критическую плотность леса (ρ<sub>кр</sub> ≈ 0,59), при которой огонь начинает охватывать весь массив, и изучить влияние ветра, влажности и противопожарных разрывов на границу перехода.</p>
+        </div>
+
+        <div class="panel" style="margin-top: 18px;">
+          <h2>Научная модель</h2>
+          <p>Клеточный автомат Бака–Ченя–Танга (1990) с расширением на ветер, влажность и тип горючего; пожарная опасность по индексу Нестерова. Встроенная «Лаборатория перколяции»: одиночные и серийные эксперименты (до 100 прогонов) с автоматическим экспортом результатов и теоретической сигмоидой в Excel.</p>
+        </div>
+      </div>
+
+      <aside class="launch-panel">
+        <h2>Запуск работы</h2>
+        <p>Игра запускается на компьютере: скачайте файл и выполните его в Python.</p>
+        <a class="btn btn-run" href="fire_game.py" download>Скачать fire_game.py</a>
+        <p class="hint">Требуется Python 3 и библиотеки pygame и openpyxl: pip install pygame openpyxl, затем python fire_game.py.</p>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Кафедра биофизики ИФБиБТ СФУ</span>
+    <span>Учебные материалы для внутреннего использования</span>
+  </div>
+</footer>
+
+</body>
+</html>

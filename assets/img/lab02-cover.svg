@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" aria-label="Лабиринт с траекторией агента и схема нейронной сети">
+  <!-- палитра практикума «Нейро-лабиринт» -->
+  <rect width="600" height="300" fill="#0c1220"/>
+  <!-- стенки лабиринта -->
+  <g fill="none" stroke="#2a3854" stroke-width="6" stroke-linecap="square">
+    <path d="M40 40 H 340 M40 40 V 260 M40 260 H 340"/>
+    <path d="M100 40 V 150 M100 205 V 260"/>
+    <path d="M160 95 V 260 M160 95 H 225"/>
+    <path d="M225 40 V 150 M285 95 V 205 M285 205 H 340"/>
+    <path d="M340 40 V 110 M340 165 V 260"/>
+  </g>
+  <!-- траектория лучшего агента -->
+  <path d="M70 235 V 180 L 130 180 V 120 L 195 120 V 230 L 255 230 V 130 L 312 130 V 138"
+        fill="none" stroke="#3ee6c1" stroke-width="3" stroke-linecap="round"
+        stroke-dasharray="0.1 9" opacity="0.95"/>
+  <circle cx="70" cy="235" r="8" fill="#ffad33"/>
+  <!-- выход -->
+  <g transform="translate(312 138)">
+    <circle r="10" fill="none" stroke="#3ee6c1" stroke-width="2.5"/>
+    <circle r="3.5" fill="#3ee6c1"/>
+  </g>
+  <!-- нейронная сеть -->
+  <g stroke-width="1.4" opacity="0.9">
+    <g stroke="#2a3854">
+      <path d="M430 90 L 500 70 M430 90 L 500 150 M430 90 L 500 230"/>
+      <path d="M430 150 L 500 70 M430 150 L 500 150 M430 150 L 500 230"/>
+      <path d="M430 210 L 500 70 M430 210 L 500 150 M430 210 L 500 230"/>
+      <path d="M500 70 L 565 110 M500 150 L 565 190"/>
+    </g>
+    <g stroke="#ffad33" stroke-width="2.2">
+      <path d="M430 90 L 500 150 M430 210 L 500 150 M500 150 L 565 110"/>
+      <path d="M500 230 L 565 190"/>
+    </g>
+  </g>
+  <g>
+    <circle cx="430" cy="90" r="9" fill="#141d31" stroke="#8a97b3" stroke-width="2"/>
+    <circle cx="430" cy="150" r="9" fill="#141d31" stroke="#8a97b3" stroke-width="2"/>
+    <circle cx="430" cy="210" r="9" fill="#141d31" stroke="#8a97b3" stroke-width="2"/>
+    <circle cx="500" cy="70" r="9" fill="#141d31" stroke="#8a97b3" stroke-width="2"/>
+    <circle cx="500" cy="150" r="10" fill="#141d31" stroke="#ffad33" stroke-width="2.5"/>
+    <circle cx="500" cy="230" r="9" fill="#141d31" stroke="#8a97b3" stroke-width="2"/>
+    <circle cx="565" cy="110" r="10" fill="#141d31" stroke="#3ee6c1" stroke-width="2.5"/>
+    <circle cx="565" cy="190" r="9" fill="#141d31" stroke="#8a97b3" stroke-width="2"/>
+  </g>
+</svg>

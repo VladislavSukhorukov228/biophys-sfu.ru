@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" aria-label="SEM-снимок с частицами и измерительными линиями">
+  <rect width="600" height="300" fill="#1c1c1e"/>
+  <!-- частицы в оттенках серого, как на СЭМ -->
+  <ellipse cx="150" cy="110" rx="58" ry="42" fill="#7a7a80" transform="rotate(-18 150 110)"/>
+  <ellipse cx="150" cy="110" rx="58" ry="42" fill="none" stroke="#a8a8b0" stroke-width="1.5" transform="rotate(-18 150 110)"/>
+  <ellipse cx="360" cy="180" rx="44" ry="44" fill="#8d8d94"/>
+  <ellipse cx="490" cy="90" rx="34" ry="22" fill="#66666c" transform="rotate(24 490 90)"/>
+  <ellipse cx="270" cy="252" rx="26" ry="18" fill="#57575d" transform="rotate(-8 270 252)"/>
+  <ellipse cx="512" cy="228" rx="20" ry="15" fill="#6e6e74" transform="rotate(40 512 228)"/>
+  <!-- измерение Ферета на первой частице -->
+  <g stroke="#EE7203" stroke-width="2">
+    <line x1="88" y1="132" x2="212" y2="88"/>
+    <line x1="88" y1="126" x2="88" y2="138"/>
+    <line x1="212" y1="82" x2="212" y2="94"/>
+  </g>
+  <text x="150" y="72" font-family="Georgia, serif" font-size="14" fill="#EE7203" text-anchor="middle">F_max</text>
+  <!-- обводка второй частицы -->
+  <ellipse cx="360" cy="180" rx="44" ry="44" fill="none" stroke="#EE7203" stroke-width="2" stroke-dasharray="6 5"/>
+  <!-- служебная строка СЭМ -->
+  <rect x="0" y="268" width="600" height="32" fill="#0c0c0e"/>
+  <g font-family="Georgia, serif" font-size="12" fill="#c8c8ce">
+    <text x="24" y="288">SEM · 15 kV · ×1200</text>
+    <rect x="440" y="280" width="80" height="5" fill="#c8c8ce"/>
+    <text x="530" y="288">10 &#956;m</text>
+  </g>
+</svg>

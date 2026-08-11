@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Виртуальный практикум · Кафедра биофизики СФУ</title>
+<meta name="description" content="Интерактивные лабораторные работы кафедры биофизики ИФБиБТ Сибирского федерального университета: симуляторы, методички, материалы к е-курсам.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="index.html">
+      <span class="uni">СФУ · ИФБиБТ</span>
+      <span class="dept">Кафедра биофизики</span>
+    </a>
+    <nav class="site-nav" aria-label="Основная навигация">
+      <a href="index.html" aria-current="page">Главная</a>
+      <a href="labs/index.html">Лабораторные работы</a>
+      <a href="index.html#contacts">Контакты</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Виртуальный практикум</p>
+      <h1>Лабораторные работы, которые <em>запускаются прямо в браузере</em></h1>
+      <p class="lead">
+        Интерактивные симуляторы для практических занятий по биофизике и смежным
+        дисциплинам. Каждая работа — это самостоятельное приложение с моделью,
+        визуализацией и экспортом данных, дополненное методическими указаниями.
+        Работы открываются на любом компьютере без установки программ и подключаются
+        к е-курсам университета.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="labs/index.html">Перейти к лабораторным</a>
+        <a class="btn btn-ghost" href="labs/lab01-fieldwork/index.html">Открыть работу №1</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="labs-preview">
+    <div class="wrap">
+      <h2>Лабораторные работы</h2>
+      <p class="section-note">
+        Шесть работ: от полевого пробоотбора до перколяции лесных пожаров.
+        Здесь — три первых; полный каталог со статусами — на странице
+        <a href="labs/index.html">лабораторных работ</a>.
+      </p>
+
+      <div class="lab-grid">
+        <article class="lab-card">
+          <a class="cover" href="labs/lab01-fieldwork/index.html" tabindex="-1" aria-hidden="true"><img src="assets/img/lab01-cover.svg" alt="Фрагмент полевой карты с точками отбора проб" loading="lazy"></a>
+          <div class="head">
+            <span class="id">LAB-01</span>
+            <span class="status">● доступна</span>
+          </div>
+          <div class="body">
+            <h3><a href="labs/lab01-fieldwork/index.html">Точка отбора: полевой пробоотбор</a></h3>
+            <p>Планирование сети точек отбора проб на карте кампуса, выход на местность
+               со смартфоном, полевой журнал и экспорт данных. Первое знакомство с
+               настоящей полевой работой исследователя.</p>
+            <div class="tags">
+              <span class="tag">полевая работа</span>
+              <span class="tag">пробоотбор</span>
+              <span class="tag">смартфон</span>
+            </div>
+          </div>
+          <div class="foot">
+            <a class="btn btn-run" href="labs/lab01-fieldwork/hydro-point.html">Запустить приложение</a>
+            <a class="btn btn-doc" href="labs/lab01-fieldwork/index.html">Страница работы</a>
+          </div>
+        </article>
+
+        <article class="lab-card">
+          <a class="cover" href="labs/lab02-neuroevolution/index.html" tabindex="-1" aria-hidden="true"><img src="assets/img/lab02-cover.svg" alt="Лабиринт с траекторией агента и схемой нейронной сети" loading="lazy"></a>
+          <div class="head">
+            <span class="id">LAB-02</span>
+            <span class="status">● доступна</span>
+          </div>
+          <div class="body">
+            <h3><a href="labs/lab02-neuroevolution/index.html">Нейро-лабиринт: нейроэволюция агентов</a></h3>
+            <p>Эволюция нейронных сетей, управляющих агентами в лабиринте: генетический
+               алгоритм, мутации весов, отбор по приспособленности, визуализация сети
+               в реальном времени.</p>
+            <div class="tags">
+              <span class="tag">нейронные сети</span>
+              <span class="tag">генетический алгоритм</span>
+              <span class="tag">HTML / JS</span>
+            </div>
+          </div>
+          <div class="foot">
+            <a class="btn btn-run" href="labs/lab02-neuroevolution/neuro-maze.html">Запустить симулятор</a>
+            <a class="btn btn-doc" href="docs/metodichka_neuroevolution.docx" download>Методичка (.docx)</a>
+          </div>
+        </article>
+
+        <article class="lab-card">
+          <a class="cover" href="labs/lab03-bios3/index.html" tabindex="-1" aria-hidden="true"><img src="assets/img/lab03-cover.svg" alt="" loading="lazy"></a>
+          <div class="head">
+            <span class="id">LAB-03</span>
+            <span class="status test">◐ тестируется</span>
+          </div>
+          <div class="body">
+            <h3><a href="labs/lab03-bios3/index.html">БИОС-3: замкнутая экосистема</a></h3>
+            <p>Управление замкнутой системой жизнеобеспечения по мотивам красноярских экспериментов БИОС-3: фотосинтез, газообмен экипажа, баланс O₂/CO₂.</p>
+            <div class="tags">
+              <span class="tag">замкнутые экосистемы</span>
+              <span class="tag">газообмен</span>
+            </div>
+          </div>
+          <div class="foot">
+            <a class="btn btn-run" href="labs/lab03-bios3/bios3.html">Запустить симулятор</a>
+            <a class="btn btn-doc" href="labs/lab03-bios3/index.html">Страница работы</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <h2>Как устроен практикум</h2>
+      <div class="two-col">
+        <div class="panel">
+          <h2>Порядок работы студента</h2>
+          <ol>
+            <li>Откройте страницу лабораторной работы и ознакомьтесь с целями и заданиями.</li>
+            <li>Скачайте методические указания — в них порядок выполнения и форма отчёта.</li>
+            <li>Запустите симулятор в браузере и выполните задания, экспортируя данные.</li>
+            <li>Оформите отчёт и сдайте его через е-курс дисциплины.</li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h2>Технические требования</h2>
+          <ul>
+            <li>Современный браузер (Chrome, Firefox, Яндекс.Браузер, Edge).</li>
+            <li>Установка программ не требуется — всё работает на HTML и JavaScript.</li>
+            <li>Симуляторы можно скачать и запускать офлайн, без доступа в интернет.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section contacts" id="contacts">
+    <div class="wrap">
+      <h2>Кафедра биофизики</h2>
+      <p class="section-note">Институт фундаментальной биологии и биотехнологии, Сибирский федеральный университет.</p>
+      <dl>
+        <dt>Заведующая кафедрой</dt><dd><b>Кратасюк Валентина Александровна</b>, д-р биол. наук, профессор</dd>
+        <dt>Адрес</dt><dd>г. Красноярск, пр. Свободный, 79, ауд. 13-08</dd>
+        <dt>Телефон</dt><dd>+7 (391) 206-20-72, +7 (391) 206-23-07</dd>
+        <dt>E-mail</dt><dd><a href="mailto:VKratasyuk@sfu-kras.ru">VKratasyuk@sfu-kras.ru</a></dd>
+        <dt>Страница кафедры</dt><dd><a href="https://sfu.ru/ru/about/departments/instituty/ifbibt/kbf" target="_blank" rel="noopener">sfu.ru → Кафедра биофизики</a></dd>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>© Кафедра биофизики ИФБиБТ СФУ</span>
+    <span>Учебные материалы для внутреннего использования</span>
+  </div>
+</footer>
+
+</body>
+</html>

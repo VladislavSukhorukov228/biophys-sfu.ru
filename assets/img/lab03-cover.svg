@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" aria-label="Замкнутая экосистема: культиватор водорослей и газообмен">
+  <rect width="600" height="300" fill="#0a0a2a"/>
+  <g fill="#ffffff" opacity="0.5">
+    <circle cx="60" cy="40" r="1.4"/><circle cx="180" cy="24" r="1"/><circle cx="300" cy="52" r="1.3"/>
+    <circle cx="430" cy="30" r="1"/><circle cx="540" cy="60" r="1.5"/><circle cx="500" cy="250" r="1"/>
+    <circle cx="80" cy="260" r="1.2"/><circle cx="360" cy="270" r="1"/>
+  </g>
+  <!-- купол-модуль -->
+  <path d="M120 230 A 180 150 0 0 1 480 230 Z" fill="#101040" stroke="#2a2a6a" stroke-width="2.5"/>
+  <line x1="100" y1="230" x2="500" y2="230" stroke="#2a2a6a" stroke-width="3"/>
+  <!-- культиватор хлореллы -->
+  <rect x="165" y="130" width="90" height="100" rx="8" fill="#0e2818" stroke="#2f7a4a" stroke-width="2.5"/>
+  <g fill="#4ade80">
+    <circle cx="188" cy="205" r="6" opacity="0.9"/><circle cx="215" cy="185" r="5" opacity="0.75"/>
+    <circle cx="235" cy="210" r="7" opacity="0.85"/><circle cx="198" cy="165" r="4.5" opacity="0.7"/>
+    <circle cx="228" cy="150" r="4" opacity="0.6"/><circle cx="182" cy="142" r="3.5" opacity="0.55"/>
+  </g>
+  <!-- жилой отсек -->
+  <rect x="340" y="150" width="95" height="80" rx="8" fill="#1a1a4a" stroke="#3a3a7a" stroke-width="2.5"/>
+  <circle cx="387" cy="180" r="14" fill="none" stroke="#8a8ad0" stroke-width="2.5"/>
+  <path d="M387 194 V 218 M373 205 H 401" stroke="#8a8ad0" stroke-width="2.5" fill="none"/>
+  <!-- газообмен -->
+  <g font-family="Georgia, serif" font-size="14" font-weight="bold">
+    <path d="M262 165 C 290 150, 310 150, 334 165" fill="none" stroke="#4ade80" stroke-width="2.5" marker-end="url(#ag)"/>
+    <text x="298" y="145" fill="#4ade80" text-anchor="middle">O&#8322;</text>
+    <path d="M334 212 C 310 228, 290 228, 262 212" fill="none" stroke="#e0a54a" stroke-width="2.5" marker-end="url(#ao)"/>
+    <text x="298" y="248" fill="#e0a54a" text-anchor="middle">CO&#8322;</text>
+  </g>
+  <defs>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#4ade80"/></marker>
+    <marker id="ao" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#e0a54a"/></marker>
+  </defs>
+</svg>
